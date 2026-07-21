@@ -1,9 +1,5 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Build
-
 Full compile (XeLaTeX): `latexmk -r latexmkrc thesis`  
 Clean: `latexmk -c thesis`
 
