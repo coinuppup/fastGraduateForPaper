@@ -189,7 +189,6 @@ L_{\mathrm{start}}, & \text{else}.
 \begin{algorithm}[htbp]
   \caption{基于事件驱动扫掠的相交集合构建算法}
   \label{alg:event_sweep}
-  \DontPrintSemicolon
   \nl \textbf{Input:} 面片集合 $F$，切片层数 $L$，各面片候选层范围 $[L'_{k\mathrm{start}}, L_{k\mathrm{end}}]$\;
   \nl \textbf{Output:} 各层的活跃面片集 $A_l$，$l = 0, \ldots, L-1$\;
   \BlankLine
@@ -276,7 +275,6 @@ P_{\mathrm{int}}=P_i+t\cdot(P_j-P_i).
 \begin{algorithm}[htbp]
   \caption{相交边提取以及层内去重}
   \label{alg:edge_extract}
-  \DontPrintSemicolon
   \nl \textbf{Input:} 第 $l$ 层活跃面片集合 $A_l$，第 $l$ 层的层高 $Z_l$，标记数组 $tag$\;
   \nl \textbf{Output:} $E_l$\;
   \BlankLine
@@ -288,8 +286,7 @@ P_{\mathrm{int}}=P_i+t\cdot(P_j-P_i).
       \If{$|z_u-z_v| < 10^{-12}$}{
         continue\; \tcp{平行边跳过}
       }
-      \If{$\min(z_u,z_v) \le Z_l \le \max(z_u,z_v)$}{
-        \tcp{边 $j$ 与平面相交}
+      \If{$\min(z_u,z_v) \le Z_l \le \max(z_u,z_v)$}{ \tcp{边 $j$ 与平面相交}
         \If{$tag[j] \ne l$}{
           $tag[j] \leftarrow l$\;
           $E_l.\mathrm{push}(j)$\; \tcp{层内去重}
@@ -312,7 +309,6 @@ P_{\mathrm{int}}=P_i+t\cdot(P_j-P_i).
 \begin{algorithm}[htbp]
   \caption{基于拓扑边环的轮廓提取}
   \label{alg:contour}
-  \DontPrintSemicolon
   \nl \textbf{Input:} $E_l$, $A_l$, $\{\kappa \to (j, p_j, q_j)\}$\;
   \nl \textbf{Output:} $C_l$\;
   \BlankLine
