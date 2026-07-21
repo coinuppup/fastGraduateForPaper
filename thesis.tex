@@ -9,12 +9,14 @@
 
 \graphicspath{{figures/}}
 
-% ===== 算法环境（基于模板已加载的 ntheorem，不新增宏包）=====
-\theoremstyle{break}
-\theorembodyfont{\songti\rmfamily}
-\theoremheaderfont{\heiti\rmfamily}
-\theoremsymbol{}
-\newtheorem{algo}{算法}[chapter]
+% ===== 算法环境说明 =====
+% 模板 hithesis.sty 已加载 algorithm2e 并完成全部配置：
+%   algoruled       — 三线格式：上1.5pt细线 + 标题 + 下1.5pt粗线
+%   linesnumbered   — 自动行号
+%   algochapter     — 按章编号（算法3-1、算法3-2...）
+%   \algorithmcfname=算法   — 中文"算法"前缀
+%   标题：\wuhao（五号），算法体：继承正文 \normalsize（小四）
+% 使用方式：\begin{algorithm}[htbp] \caption{名称} \label{alg:xxx} ... \end{algorithm}
 
 \begin{document}
 \frontmatter

@@ -186,38 +186,42 @@ L_{\mathrm{start}}, & \text{else}.
 
 上述两个步骤执行完成之后，$A$中存储第$l$层完整活跃面片集合。整个扫掠过程中每个面片只被处理两次，一次进入、一次离开。设第$l$层活跃面片集合大小为$|A_{l}|$，算法总时间复杂度为$O(K+L+\sum|A_{l}|)$。实际模型中单个面片的$Z$向跨度远小于模型总高，$|A_{l}|\ll K$恒成立，均匀网格下时间复杂度接近$O(K+L)$。
 
-\begin{center}
-\textbf{算法3-1：基于事件驱动扫掠的相交集合构建算法}
-\end{center}
-
-\begin{verbatim}
-Input:  面片集合 F，切片层数 L，各面片候选层范围 [L'_{kstart}, L_{kend}]
-Output: 各层的活跃面片集 A_l，l = 0, ..., L - 1
-
- 1  Initialize B^enter[0...L-1], B^exit[0...L]
- 2  for each f_k in F do
- 3      B^enter[L'_{kstart}].append(k)
- 4      B^exit[L_{kend}+1].append(k)
- 5  Initialize alpha[0...K-1] <- 0, pi[0...K-1] <- -1
- 6  Initialize A <- empty
- 7  for l = 0 to L - 1 do
- 8      for each k in B^enter[l] do
- 9          if alpha_k = 0 then
-10              alpha_k <- 1
-11              pi_k <- |A|
-12              A.append(k)
-13      for each k in B^exit[l] do
-14          if alpha_k = 1 then
-15              alpha_k <- 0
-16              pos <- pi_k
-17              last <- A.back()
-18              A[pos] <- last
-19              pi_last <- pos
-20              A.pop_back()
-21      A_l <- A  // 第 l 层的活跃面片集合
-22  return {A_0, A_1, ..., A_{L-1}}
-\end{verbatim}
-\label{alg:event_sweep}
+\begin{algorithm}[htbp]
+  \caption{基于事件驱动扫掠的相交集合构建算法}
+  \label{alg:event_sweep}
+  \DontPrintSemicolon
+  \nl \textbf{Input:} 面片集合 $F$，切片层数 $L$，各面片候选层范围 $[L'_{k\mathrm{start}}, L_{k\mathrm{end}}]$\;
+  \nl \textbf{Output:} 各层的活跃面片集 $A_l$，$l = 0, \ldots, L-1$\;
+  \BlankLine
+  Initialize $B^{\mathrm{enter}}[0\ldots L-1]$, $B^{\mathrm{exit}}[0\ldots L]$\;
+  \ForEach{$f_k \in F$}{
+    $B^{\mathrm{enter}}[L'_{k\mathrm{start}}].\mathrm{append}(k)$\;
+    $B^{\mathrm{exit}}[L_{k\mathrm{end}}+1].\mathrm{append}(k)$\;
+  }
+  Initialize $\alpha[0\ldots K-1] \leftarrow 0$, $\pi[0\ldots K-1] \leftarrow -1$\;
+  Initialize $A \leftarrow \emptyset$\;
+  \For{$l \leftarrow 0$ \KwTo $L-1$}{
+    \ForEach{$k \in B^{\mathrm{enter}}[l]$}{
+      \If{$\alpha_k = 0$}{
+        $\alpha_k \leftarrow 1$\;
+        $\pi_k \leftarrow |A|$\;
+        $A.\mathrm{append}(k)$\;
+      }
+    }
+    \ForEach{$k \in B^{\mathrm{exit}}[l]$}{
+      \If{$\alpha_k = 1$}{
+        $\alpha_k \leftarrow 0$\;
+        $pos \leftarrow \pi_k$\;
+        $last \leftarrow A.\mathrm{back}()$\;
+        $A[pos] \leftarrow last$\;
+        $\pi_{last} \leftarrow pos$\;
+        $A.\mathrm{pop\_back}()$\;
+      }
+    }
+    $A_l \leftarrow A$\; \tcp{第 $l$ 层的活跃面片集合}
+  }
+  \Return{$\{A_0, A_1, \ldots, A_{L-1}\}$}\;
+\end{algorithm}
 
 \section{构建切片轮廓}
 
@@ -269,24 +273,33 @@ P_{\mathrm{int}}=P_i+t\cdot(P_j-P_i).
 
 算法\ref{alg:edge_extract}给出了第$l$层相交边提取的完整流程，活跃面片集合$A_{l}$确定后，遍历$A_{l}$中每个面片的三条边，参照式\eqref{eq:edge_intersect}执行相交判定，跳过不相交的边。一条边通常被两个相邻面片共享，如果这两个面片在同一个$Z$高度同时活跃，该边将被重复收集两次，一个与边数组等长的整型标记数组$tag$实现常数时间去重，初始值为$-1$。处理第$l$层时，若全局边$e$首次被发现与切平面相交，则将标记值设为$l$并将$e$加入$E_{l}$；若$tag[e]=l$则表明该边已被同层面片处理过，直接跳过。标记数组在层间切换时天然处于可用状态，第$l$层使用整数值$l$作为标记，第$l+1$层使用$l+1$，新旧标记自然区分，不需要显式清零操作。
 
-\begin{center}
-\textbf{算法3-2：相交边提取以及层内去重}
-\end{center}
-
-\begin{verbatim}
-Input:  第 l 层活跃面片集合 A_l，第 l 层的层高 Z_l，标记数组 tag
-Output: E_l
-
-1  E_l <- empty
-2  for each f_k in A_l do c <- 0
-3      for each j in {I_e0, I_e1, I_e2} do 取端点 Z 坐标 z_u, z_v
-4          if |z_u-z_v| < 10^-12 then continue  // 平行边跳过
-5          if min(z_u,z_v) <= Z_l <= max(z_u,z_v) then  // 边 j 与平面相交
-6              if tag[j] != l then tag[j] <- l; E_l.push(j)  // 层内去重
-7              c <- c + 1
-8  return E_l
-\end{verbatim}
-\label{alg:edge_extract}
+\begin{algorithm}[htbp]
+  \caption{相交边提取以及层内去重}
+  \label{alg:edge_extract}
+  \DontPrintSemicolon
+  \nl \textbf{Input:} 第 $l$ 层活跃面片集合 $A_l$，第 $l$ 层的层高 $Z_l$，标记数组 $tag$\;
+  \nl \textbf{Output:} $E_l$\;
+  \BlankLine
+  $E_l \leftarrow \emptyset$\;
+  \ForEach{$f_k \in A_l$}{
+    $c \leftarrow 0$\;
+    \ForEach{$j \in \{I_{e0}, I_{e1}, I_{e2}\}$}{
+      取端点 $Z$ 坐标 $z_u$, $z_v$\;
+      \If{$|z_u-z_v| < 10^{-12}$}{
+        continue\; \tcp{平行边跳过}
+      }
+      \If{$\min(z_u,z_v) \le Z_l \le \max(z_u,z_v)$}{
+        \tcp{边 $j$ 与平面相交}
+        \If{$tag[j] \ne l$}{
+          $tag[j] \leftarrow l$\;
+          $E_l.\mathrm{push}(j)$\; \tcp{层内去重}
+        }
+        $c \leftarrow c + 1$\;
+      }
+    }
+  }
+  \Return{$E_l$}\;
+\end{algorithm}
 
 \subsection{基于边行走的轮廓构建及后处理}
 
@@ -296,34 +309,50 @@ Output: E_l
 
 基于边游走时，以当前面片$f_{k}$和当前边$j_{\mathrm{cur}}$为基准，提取出当前面片的三条边的索引$(I_{e0},I_{e1},I_{e2})$，排除当前边$j_{\mathrm{cur}}$，判断剩下的两条边是否能够在边活跃集合$E_{l}$中找到并且还活跃。在前置过程构建边活跃时，我们已经讨论过，一个面片只有2条边能够加入到活跃面片集合中，所以在这一阶段，恰好只有一条边满足条件，将其记录为下一条拓展边$j_{\mathrm{next}}$。然后，判断找到的拓展边$j_{\mathrm{next}}$是否等于$j_{\mathrm{seed}}$，如果$j_{\mathrm{next}}=j_{\mathrm{seed}}$二者相等，说明此时回到了最开始的种子边上，轮廓已经闭合，终止当前游走。相反的，如果判断$j_{\mathrm{next}}\ne j_{\mathrm{seed}}$，则轮廓还没有闭合，将$j_{\mathrm{next}}$放入有序序列$P$中，通过边索引$j_{\mathrm{next}}$查询到边邻接的面片记录$(p_{j_{\mathrm{next}}},q_{j_{\mathrm{next}}})$，排除当前正在遍历的面片$k$，把另外一个面片选定为下一阶段的面片$f_{k_{\mathrm{next}}}$。对选定的下一阶段面片校验，如果$k_{\mathrm{next}}$不存在或不在面片集合中，则说明路径延伸到了非活跃区域，游走终止；否则，将$j_{\mathrm{cur}}$更新为$j_{\mathrm{next}}$，$k$更新为$k_{\mathrm{next}}$，重复上述逻辑，直至边游走结束得到有序序列$P$。最后判断$P$的数量是否大于等于3，按照式\eqref{eq:linear_interp}对有序序列$P$中每一条边执行线性插值，就可以求出切片平面与当前相交平面的交点坐标，最后就是将交点按照有序序列$P$中的顺序组合成有序序列$c$，放入到当前层的原始轮廓的集合$C_{l}$中。
 
-\begin{center}
-\textbf{算法3-3：基于拓扑边环的轮廓提取}
-\end{center}
-
-\begin{verbatim}
-Input:  E_l, A_l, {kappa -> (j, p_j, q_j)}
-Output: C_l
-
- 1  C_l <- empty
- 2  while exists j_seed in E_l 未使用 do
- 3      取种子面片 (p_{j_seed}, q_{j_seed});
-         if p_{j_seed} = -1 or q_{j_seed} = -1 then continue
- 4      j_cur <- j_seed; P <- {j_seed}; closed <- false;
-        取 k 为 j_seed 在 A_l 中的有效邻接面片索引
- 5      for s = 0 to 2|E_l| do
- 6          在面片 f_k 的三边映射 (I_e0, I_e1, I_e2) 中查找
-            j_next in E_l，且 j_next != j_cur，且未使用
- 7          if 未找到满足条件的边 then break
- 8          if j_next = j_seed then closed <- true; break
- 9          P.push(j_next); 获取 kappa_next -> (j_next, p_{j_next}, q_{j_next});
-            k_next <- (p_{j_next} != k) ? p_{j_next} : q_{j_next}
-10          if k_next not in A_l then break
-11          j_cur <- j_next; f_k <- f_next
-12      if closed and |P| >= 3 then
-          c <- Interp(P); c.push(c_0); C_l.push(c)
-13  return 原始轮廓集合 C_l
-\end{verbatim}
-\label{alg:contour}
+\begin{algorithm}[htbp]
+  \caption{基于拓扑边环的轮廓提取}
+  \label{alg:contour}
+  \DontPrintSemicolon
+  \nl \textbf{Input:} $E_l$, $A_l$, $\{\kappa \to (j, p_j, q_j)\}$\;
+  \nl \textbf{Output:} $C_l$\;
+  \BlankLine
+  $C_l \leftarrow \emptyset$\;
+  \While{$\exists\; j_{\mathrm{seed}} \in E_l$ 未使用}{
+    取种子面片 $(p_{j_{\mathrm{seed}}}, q_{j_{\mathrm{seed}}})$\;
+    \If{$p_{j_{\mathrm{seed}}} = -1$ \textbf{or} $q_{j_{\mathrm{seed}}} = -1$}{
+      continue\;
+    }
+    $j_{\mathrm{cur}} \leftarrow j_{\mathrm{seed}}$\;
+    $P \leftarrow \{j_{\mathrm{seed}}\}$\;
+    $closed \leftarrow \mathrm{false}$\;
+    取 $k$ 为 $j_{\mathrm{seed}}$ 在 $A_l$ 中的有效邻接面片索引\;
+    \For{$s \leftarrow 0$ \KwTo $2|E_l|$}{
+      在面片 $f_k$ 的三边映射 $(I_{e0}, I_{e1}, I_{e2})$ 中查找\;
+      \quad $j_{\mathrm{next}} \in E_l$，且 $j_{\mathrm{next}} \ne j_{\mathrm{cur}}$，且未使用\;
+      \If{未找到满足条件的边}{
+        break\;
+      }
+      \If{$j_{\mathrm{next}} = j_{\mathrm{seed}}$}{
+        $closed \leftarrow \mathrm{true}$\;
+        break\;
+      }
+      $P.\mathrm{push}(j_{\mathrm{next}})$\;
+      获取 $\kappa_{\mathrm{next}} \to (j_{\mathrm{next}}, p_{j_{\mathrm{next}}}, q_{j_{\mathrm{next}}})$\;
+      $k_{\mathrm{next}} \leftarrow (p_{j_{\mathrm{next}}} \ne k) \;?\; p_{j_{\mathrm{next}}} : q_{j_{\mathrm{next}}}$\;
+      \If{$k_{\mathrm{next}} \notin A_l$}{
+        break\;
+      }
+      $j_{\mathrm{cur}} \leftarrow j_{\mathrm{next}}$\;
+      $f_k \leftarrow f_{k_{\mathrm{next}}}$\;
+    }
+    \If{$closed$ \textbf{and} $|P| \ge 3$}{
+      $c \leftarrow \mathrm{Interp}(P)$\;
+      $c.\mathrm{push}(c_0)$\;
+      $C_l.\mathrm{push}(c)$\;
+    }
+  }
+  \Return{原始轮廓集合 $C_l$}\;
+\end{algorithm}
 
 在目前基于拓扑边来构建轮廓的算法中，每一条边在当前层中只会使用一次，且使用完之后就会被标记为非活跃边，理论上不存在轮廓重复的问题，并经过试验验证了多个不同的模型，证明理论成立。所以本论文中在轮廓构建完成之后不做轮廓的去重处理。在轮廓构建完之后，本论文只对实际面积小于$1\mathrm{mm}^{2}$的轮廓执行过滤，因为这些极其小的轮廓在实际打印中往往打印不出来。根据多边形的轮廓点序列$P=(x_{i},y_{i}),i=0,1,\ldots,n-1$的面积$S$计算方式如下：
 
@@ -354,6 +383,7 @@ S=\dfrac{1}{2}\left|\sum_{i=0}^{n-1}\left(x_i y_{i+1}-x_{i+1}y_i\right)\right| \
 \subsection{与已有切片方法的端到端对比}
 
 % [待补充：与已有切片方法的端到端对比内容]
+
 
 \section{本章小结}
 
