@@ -252,18 +252,18 @@ P_{\mathrm{int}}=P_i+t\cdot(P_j-P_i).
 式中$P_{i}=(x_{i},y_{i},z_{i})$和$P_{j}=(x_{j},y_{j},z_{j})$为相交边的两个端点。
 
 \begin{table}[htbp]
-  \centering
+  \vspace{0.5em}\centering\wuhao
   \caption{面片与切片平面的相交情形汇总}
   \label{tab:intersection}
-  \begin{tabular}{cccc}
-    \hline
-    类别 & 编号 & 相交边数 & 下游处理 \\
-    \hline
-    不相交 & (a)(b) & 0 & 快速筛选已经过滤 \\
-    普通相交 & (c)(d) & 2 & 边种子方式走 \\
-    特殊相交 & (e)(f) & 3 & 边种子方式走 \\
-    共面 & (g) & 3 & 快速筛选已经过滤 \\
-    \hline
+  \begin{tabular}{p{0.16\textwidth}p{0.16\textwidth}p{0.16\textwidth}p{0.40\textwidth}}
+  \specialrule{1.5pt}{2pt}{0pt}
+  类别 & 编号 & 相交边数 & 下游处理 \\
+  \specialrule{0.5pt}{0pt}{0pt}
+  不相交 & (a)(b) & 0 & 快速筛选已经过滤 \\
+  普通相交 & (c)(d) & 2 & 边种子方式走 \\
+  特殊相交 & (e)(f) & 3 & 边种子方式走 \\
+  共面 & (g) & 3 & 快速筛选已经过滤 \\
+  \specialrule{1.5pt}{0pt}{2pt}
   \end{tabular}
 \end{table}
 
