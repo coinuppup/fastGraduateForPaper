@@ -6,7 +6,15 @@
 \usepackage{hithesis}
 \newcommand{\cndash}{\rule{0.2em}{0pt}\rule[0.35em]{1.6em}{0.05em}\rule{0.2em}{0pt}}
 
+
 \graphicspath{{figures/}}
+
+% ===== 算法环境（基于模板已加载的 ntheorem，不新增宏包）=====
+\theoremstyle{break}
+\theorembodyfont{\songti\rmfamily}
+\theoremheaderfont{\heiti\rmfamily}
+\theoremsymbol{}
+\newtheorem{algo}{算法}[chapter]
 
 \begin{document}
 \frontmatter
