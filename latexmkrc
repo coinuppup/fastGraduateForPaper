@@ -32,8 +32,5 @@ sub splitindex {
    my $ret2 = system( "splitindex", $$Psource );
    return $ret1 || $ret2;
 }
-@cus_dep_list = (@cus_dep_list, "idx ind 0 makenomenclature");
-sub makenomenclature {
-   system("splitindex $_[0] -- -s $_[0].ist"); }
 @generated_exts = (@generated_exts, 'glo');
 
