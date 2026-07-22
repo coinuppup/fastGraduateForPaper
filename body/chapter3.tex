@@ -89,10 +89,10 @@ h=H(Q_{x})\oplus H(Q_{y})\ll 1\oplus H(Q_{z})\ll 2 \label{eq:hash}
 依托这两层映射关系，如果已知面片$f_{k}$绑定了三条全局边索引$I_{e0}$、$I_{e1}$、$I_{e2}$，则对于面内的任意一个全局边的索引$j\in\{I_{e0},I_{e1},I_{e2}\}$，都可以追溯查找出生成这条无向边的顶点对$\kappa=(u,v)$。代入对应的映射记录$\kappa\to(j,p_{e},q_{e})$，就可以直接获取这条边的两个邻接面片的索引$p_{e}$和$q_{e}$。由于这条边属于当前面片$f_{k}$，所以$p_{e}$和$q_{e}$中必然有一个数值等于当前面片的全局唯一编号$k$，排除掉当前面片的自身索引$k$之后，另外一个有效的邻接面片索引就是相邻面片的索引。遍历面片$f_{k}$全部三条边并收集各自对应的邻接面片索引，汇总每个面片的邻接面片集合：
 
 \begin{equation}
-\theSet{N}(f_{k})=\{I_{n0},I_{n1},I_{n2}\} \label{eq:neighbor}
+\bm{N}(f_{k})=\{I_{n0},I_{n1},I_{n2}\} \label{eq:neighbor}
 \end{equation}
 
-且满足$\left|\theSet{N}(f_k)\right|\le 3$。
+且满足$\left|\bm{N}(f_k)\right|\le 3$。
 
 结合上述映射关系，最终构建双向拓扑通路：一方面，面片可以通过内置的索引实现面片到点、面片到边的正向读取；而凭借着无向边，则可以实现边到邻接面片的索引，构建面片到边、边到邻接面片的链式双向索引。表\ref{tab:topo_storage}给出了拓扑重建前后各数据结构的存储开销对比。
 
@@ -156,10 +156,10 @@ e=(f_k, z_{\min}, z_{\max}, \theta, \mathrm{status}) \label{eq:event_def}
 \caption{事件驱动切片主循环}
 \label{alg:eds}
 \KwIn{拓扑重建后的网格数据$M$，总切片层数$L$，层厚$\Delta z$}
-\KwOut{全部层的切片轮廓集合$\theSet{C}$}
+\KwOut{全部层的切片轮廓集合$\bm{C}$}
 初始化事件优先级队列$Q\leftarrow\emptyset$\;
 初始化当前层索引$l\leftarrow 0$\;
-初始化切片轮廓集合$\theSet{C}\leftarrow\emptyset$\;
+初始化切片轮廓集合$\bm{C}\leftarrow\emptyset$\;
 
 \ForEach{面片$f_k\in M$}{
   计算$z_{\min}(f_k)$，$z_{\max}(f_k)$，$\theta(f_k)$\;
@@ -180,10 +180,10 @@ e=(f_k, z_{\min}, z_{\max}, \theta, \mathrm{status}) \label{eq:event_def}
   }
 
   调用轮廓重构子程序$\mathrm{ReconstructContours}(S_l)$，生成本层二维轮廓$C_l$\;
-  将$C_l$添加至轮廓集合$\theSet{C}$\;
+  将$C_l$添加至轮廓集合$\bm{C}$\;
   $l\leftarrow l+1$\;
 }
-\Return{$\theSet{C}$}\;
+\Return{$\bm{C}$}\;
 \end{algorithm}
 
 轮廓重构子程序负责将每一层中无序的二维交线段组装成首尾相连的闭合轮廓，其详细步骤如算法\ref{alg:reconstruct}所示。
@@ -191,9 +191,9 @@ e=(f_k, z_{\min}, z_{\max}, \theta, \mathrm{status}) \label{eq:event_def}
 \begin{algorithm}[htbp]
 \caption{轮廓重构子程序}
 \label{alg:reconstruct}
-\KwIn{当前层无序线段集合$S_l$，拓扑邻接信息$\theSet{N}$}
-\KwOut{闭合二维轮廓集合$\theSet{R}_l$}
-初始化轮廓集合$\theSet{R}_l\leftarrow\emptyset$\;
+\KwIn{当前层无序线段集合$S_l$，拓扑邻接信息$\bm{N}$}
+\KwOut{闭合二维轮廓集合$\bm{R}_l$}
+初始化轮廓集合$\bm{R}_l\leftarrow\emptyset$\;
 初始化访问标记数组$\mathrm{visited}[1\ldots|S_l|]\leftarrow\{\mathrm{false}\}$\;
 
 \ForEach{线段$s_i\in S_l$，其中$\mathrm{visited}[i]=\mathrm{false}$}{
@@ -203,7 +203,7 @@ e=(f_k, z_{\min}, z_{\max}, \theta, \mathrm{status}) \label{eq:event_def}
   将$\mathrm{curr}$的起点添加至$r$\;
 
   \Repeat{当前线段$\mathrm{curr}$的终点与$r$的起点重合}{
-    通过拓扑邻接信息$\theSet{N}$查找与$\mathrm{curr}$的终点相连的下一线段$s_j$\;
+    通过拓扑邻接信息$\bm{N}$查找与$\mathrm{curr}$的终点相连的下一线段$s_j$\;
     \If{未找到$s_j$或$\mathrm{visited}[j]=\mathrm{true}$}{
       \textbf{break}\;
     }
@@ -213,20 +213,20 @@ e=(f_k, z_{\min}, z_{\max}, \theta, \mathrm{status}) \label{eq:event_def}
   }
 
   \If{$|r|\ge 3$}{
-    将闭合轮廓$r$添加至$\theSet{R}_l$\;
+    将闭合轮廓$r$添加至$\bm{R}_l$\;
   }
 }
-\Return{$\theSet{R}_l$}\;
+\Return{$\bm{R}_l$}\;
 \end{algorithm}
 
 \subsection{自适应切片策略}
 
 自适应切片策略的核心思想是根据模型局部几何特征的复杂程度动态调节层厚。在几何特征变化剧烈的区域（如高曲率曲面、悬垂结构、薄壁特征等），采用较小的层厚以保证成型精度；在几何特征平缓的区域（如垂直平面、大面积平面等），采用较大的层厚以提高加工效率。
 
-对于每个三角面片$f_k$，定义其几何复杂度指标$\theta(f_k)$为面片法向量$\theVector{n}_k$与$Z$轴正方向单位向量$\theVector{e}_z=(0,0,1)$的夹角：
+对于每个三角面片$f_k$，定义其几何复杂度指标$\theta(f_k)$为面片法向量$\bm{n}_k$与$Z$轴正方向单位向量$\bm{e}_z=(0,0,1)$的夹角：
 
 \begin{equation}
-\theta(f_k)=\arccos\left(\frac{\left|\theVector{n}_k\cdot\theVector{e}_z\right|}{\left\|\theVector{n}_k\right\|\cdot\left\|\theVector{e}_z\right\|}\right) \label{eq:theta_def}
+\theta(f_k)=\arccos\left(\frac{\left|\bm{n}_k\cdot\bm{e}_z\right|}{\left\|\bm{n}_k\right\|\cdot\left\|\bm{e}_z\right\|}\right) \label{eq:theta_def}
 \end{equation}
 
 $\theta(f_k)$的取值范围为$[0,\pi/2]$。当$\theta\to 0$时，面片近似水平（平行于打印平面），此时对层厚最为敏感，应当采用最小层厚$\Delta z_{\min}$；当$\theta\to\pi/2$时，面片近似竖直（垂直于打印平面），此时可采用最大层厚$\Delta z_{\max}$以提高加工效率。基于此，定义层厚函数为：

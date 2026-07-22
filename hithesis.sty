@@ -58,7 +58,8 @@
 }
 \renewcommand{\algorithmcfname}{算法}
 \setlength\AlCapSkip{1.2ex}
-\SetAlgoSkip{1pt}
+\SetAlFnt{\wuhao}
+\SetAlgoSkip{0pt}
 \renewcommand{\algocf@captiontext}[2]{\wuhao#1\algocf@typo~\AlCapFnt{}#2} % text of caption
 \expandafter\ifx\csname algocf@within\endcsname\relax% if \algocf@within doesn't exist
 \renewcommand\thealgocf{\@arabic\c@algocf} % and the way it is printed
@@ -305,15 +306,6 @@ breaklines=true
   \gsegr{\x+3.5}{3}{\y-1}{0.2}{0.5}{pseg}{0.5}{1.5}{paternal};
 }
 
-\newcommand{\theVector}[1]{\bm{#1}}
-\newcommand{\theMatrix}[1]{\mathbb{#1}}
-\newcommand{\theSet}[1]{\mathcal{#1}}
-\newcommand{\theDirected}[1]{{\overrightarrow{#1}}}
-\newcommand{\theUndirected}[1]{{\overline{#1}}}
-\newcommand{\theNetwork}[1]{\mathscr{#1}}
-\newcommand{\theNode}[1]{{\text{#1}}}
-\newcommand{\theDirectedEdge}[2]{{\overrightarrow{{#1}{#2}}}}
-\newcommand{\theUndirectedEdge}[2]{{\overline{{#1}{#2}}}}
 
 \def\cmd#1{\cs{\expandafter\cmd@to@cs\string#1}}
 \def\cmd@to@cs#1#2{\char\number`#2\relax}

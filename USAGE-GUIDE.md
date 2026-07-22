@@ -1,52 +1,70 @@
 # 哈尔滨工业大学 LaTeX 论文写作指南（小白向）
 
-这篇指南面向零基础用户。**你不需要懂 LaTeX 原理**，只要知道"在哪里写什么"就行。本文用到的所有规范都来自学校模板，你不需要自己设计任何格式。
+这篇指南面向零基础用户。你不需要懂 LaTeX 原理，只要知道"在哪里写什么"就行。
 
 ---
 
 ## 目录
 
-1. [项目文件结构](#1-项目文件结构)
-2. [编译论文](#2-编译论文)
-3. [写文字和标题](#3-写文字和标题)
-4. [写公式](#4-写公式)
-5. [数学符号规范](#5-数学符号规范)
-6. [插入图片](#6-插入图片)
-7. [插入表格](#7-插入表格)
-8. [插入伪代码](#8-插入伪代码)
-9. [引用文献](#9-引用文献)
-10. [字号修改](#10-字号修改)
-11. [常见问题](#11-常见问题)
+1. [hithesis.sty 是什么](#1-hithesissty-是什么)
+2. [项目文件结构](#2-项目文件结构)
+3. [编译论文](#3-编译论文)
+4. [写文字和标题](#4-写文字和标题)
+5. [写公式](#5-写公式)
+6. [数学符号规范](#6-数学符号规范)
+7. [插入图片](#7-插入图片)
+8. [插入表格](#8-插入表格)
+9. [插入伪代码](#9-插入伪代码)
+10. [引用规范速查](#10-引用规范速查)
+11. [字号速查](#11-字号速查)
+12. [常见问题](#12-常见问题)
 
 ---
 
-## 1. 项目文件结构
+## 1. hithesis.sty 是什么
+
+`hithesis.sty` 是哈工大论文模板的**核心样式文件**。它做的事：
+
+| 功能 | 它帮你干的事 |
+|------|-------------|
+| **加载宏包** | `siunitx`（数字格式化）、`bm`（粗体）、`algorithm2e`（伪代码）、`booktabs`（三线表）、`tikz`（绘图）等 |
+| **配置伪代码** | 算法标题格式、编号规则、中英文双语标题支持 |
+| **配置表格** | 三线表线宽 (`\toprule` 1.5pt / `\midrule` 1pt / `\bottomrule` 1.5pt) |
+| **配置数字格式** | `\num{}` 自动处理千位分隔（≥4 位数字时） |
+
+**这个文件你不要改。** 你只需要用它提供的命令来写论文。
+
+---
+
+## 2. 项目文件结构
 
 ```
 fastgraduate/
-├── thesis.tex          ← 主文件（控制编译顺序）
-├── hithesis.sty        ← 模板样式（不要改）
-├── hithesisbook.cls    ← 模板类型（不要改）
+├── thesis.tex          ← 主文件（控制编译顺序和全局设置）
+├── hithesis.sty        ← 模板样式（不要改！）
+├── hithesisbook.cls    ← 模板类型（不要改！）
+├── hithesisbook.cfg    ← 模板配置（不要改！）
 ├── reference.bib       ← 参考文献库
 ├── latexmkrc           ← 编译配置
 ├── front/
-│   ├── cover.tex       ← 封面信息（改你的名字、题目）
+│   ├── cover.tex       ← 封面信息（改你的名字、题目等）
 │   └── denotation.tex  ← 符号表
 ├── body/
-│   ├── chapter3.tex    ← 你要写的章节（示例）
+│   ├── preface.tex     ← 前言
+│   ├── chapter3.tex    ← 你的章节
 │   ├── introduction.tex ← 绪论
-│   └── regu.tex        ← 撰写规范（参考）
+│   └── regu.tex        ← 学校撰写规范（仅供参考）
 ├── back/
 │   ├── conclusion.tex  ← 结论
 │   └── acknowledgements.tex ← 致谢
 └── figures/            ← 放图片的文件夹
 ```
 
-**你需要改的文件只有这些**：`front/cover.tex`（封面信息）、`body/` 下的章节文件、`back/` 下的结论和致谢、`reference.bib`（参考文献）。
+**你需要改的文件**：`front/cover.tex`、`body/` 下的章节、`back/` 下的结论和致谢、`reference.bib`。
 
 ---
 
-## 2. 编译论文
+## 3. 编译论文
 
 打开命令行，进入项目文件夹，输入：
 
@@ -54,7 +72,7 @@ fastgraduate/
 latexmk -r latexmkrc thesis
 ```
 
-编译成功后会在文件夹中生成 `thesis.pdf`。如果报错，检查是否有中文标点（逗号、引号等）误写成了英文标点。
+编译成功后生成 `thesis.pdf`。
 
 清理临时文件：
 
@@ -64,60 +82,63 @@ latexmk -c thesis
 
 ---
 
-## 3. 写文字和标题
+## 4. 写文字和标题
 
-### 3.1 章节标题
-
-```latex
-\chapter{你的章节中文标题}[Your English Title]
-```
-
-> **示例**：`\chapter{事件驱动拓扑集成切片算法}[Event-Driven Topology Slicing]`
-
-### 3.2 节标题
+### 4.1 章标题
 
 ```latex
-\section{中文节标题}[English Section Title]
-\subsection{中文小节标题}[English Subsection Title]
+\chapter{中文标题}[English Title]
 ```
 
-英文标题 `[...]` 可以省略，但建议写上。**标题中不要加标点符号**。
+示例：
+```latex
+\chapter{事件驱动拓扑集成切片算法}[Event-Driven Topology-Integrated Slicing Algorithm]
+```
 
-### 3.3 正文文字
-
-直接写就行。段落之间空一行。
+### 4.2 节标题
 
 ```latex
-这是第一段文字。LPBF技术是通过逐层熔化金属粉末实现复杂三维结构的直接成型。
-
-这是第二段文字。段落之间空一行就会自动分段。
+\section{中文节标题}
+\subsection{中文小节标题}
+\subsubsection{中文小小节标题}
 ```
 
-### 3.4 列表
+### 4.3 标题层级与字号
+
+模板已预设全部标题格式，**你不需要手动调字号**，只需使用对应的标题命令即可。
+
+| 层级 | 命令 | 字号 | 磅值 | 字体 |
+|------|------|------|------|------|
+| 章标题 | `\chapter{}` | 小二 | 18bp | 黑体加粗居中 |
+| 节标题 | `\section{}` | 小三 | 15bp | 黑体 |
+| 小节标题 | `\subsection{}` | 四号 | 14bp | 黑体 |
+| 小小节标题 | `\subsubsection{}` | 小四 | 12bp | 黑体 |
+| 正文 | — | 小四 | 12bp | 宋体 |
+
+### 4.4 正文文字
+
+直接写。段落之间空一行。
+
+### 4.5 列表
 
 ```latex
 \begin{enumerate}
 \item 第一点；
 \item 第二点；
-\item 第三点。
 \end{enumerate}
 ```
 
 ---
 
-## 4. 写公式
+## 5. 写公式
 
-### 4.1 行内公式
-
-用 `$...$` 包裹，公式会嵌入在文字中：
+### 5.1 行内公式
 
 ```latex
 当顶点被 $n$ 个面片共用时，坐标用 $(x, y, z)$ 表示。
 ```
 
-### 4.2 独立公式（带编号）
-
-用 `\begin{equation}...\end{equation}`，公式会自动编号。用 `\label{}` 给公式贴标签，以后可以引用。
+### 5.2 独立公式（带编号）
 
 ```latex
 \begin{equation}
@@ -125,9 +146,9 @@ V - E + F = 2 \label{eq:euler}
 \end{equation}
 ```
 
-引用公式：`式\eqref{eq:euler}` → 输出"式（3-1）"
+引用公式：`式\eqref{eq:euler}` → 输出 "式（3-1）"
 
-### 4.3 多行公式（cases）
+### 5.3 多行公式
 
 ```latex
 \begin{equation}
@@ -139,115 +160,119 @@ V - E + F = 2 \label{eq:euler}
 \end{equation}
 ```
 
-其中 `\\[6pt]` 是换行并留 6pt 间距，`\le` 是 ≤，`\varepsilon` 是 ε。
+### 5.4 公式常用符号速查
 
-### 4.4 公式中的常用符号
+| 写法 | 效果 | 写法 | 效果 |
+|------|------|------|------|
+| `x_i` | 下标 | `x^2` | 上标 |
+| `\frac{a}{b}` | 分数 | `\sqrt{x}` | 根号 |
+| `\cdot` | ⋅ | `\times` | × |
+| `\sum` | Σ | `\int` | ∫ |
+| `\le` | ≤ | `\ge` | ≥ |
+| `\infty` | ∞ | `\to` | → |
+| `\min` | min | `\max` | max |
+| `\mathrm{mm}` | 正体单位 | `\mathbf{R}` | 粗体 |
+| `\left(...\right)` | 自适应括号 | `\left|...\right|` | 自适应绝对值 |
+| `\arccos` | arccos | `\varepsilon` | ε |
 
-| 写法 | 效果 | 说明 |
-|------|------|------|
-| `x_i` | $x_i$ | 下标 |
-| `x^2` | $x^2$ | 上标 |
-| `\cdot` | ⋅ | 乘号 |
-| `\times` | × | 叉乘 |
-| `\frac{a}{b}` | 分数 a/b | 分式 |
-| `\sqrt{x}` | √x | 根号 |
-| `\sum` | Σ | 求和 |
-| `\int` | ∫ | 积分 |
-| `\le` | ≤ | 小于等于 |
-| `\ge` | ≥ | 大于等于 |
-| `\infty` | ∞ | 无穷 |
-| `\to` | → | 箭头 |
-| `\Rightarrow` | ⇒ | 双线箭头 |
-| `\arccos` | arccos | 反余弦 |
-| `\min` | min | 最小值 |
-| `\max` | max | 最大值 |
-| `\mathrm{mm}` | mm | 正体单位 |
-| `\mathbf{R}` | **R** | 粗体向量 |
-| `\left(...\right)` | 自适应括号 | 括号大小自动匹配内容 |
-| `\left|...\right|` | 自适应绝对值 | 同上 |
-
-### 4.5 公式后加变量注释
+### 5.5 公式后加变量注释
 
 ```latex
 \begin{equation}
-\ddot{\boldsymbol{\rho}} - \frac{\mu}{R_t^3}
-\left(3\mathbf{R_t}\frac{\mathbf{R_t\rho}}{R_t^2} - \boldsymbol{\rho}\right) = \mathbf{a}
+\bm{\ddot{\rho}} - \frac{\mu}{R_t^3}
+\left(3\mathbf{R_t}\frac{\mathbf{R_t\rho}}{R_t^2} - \bm{\rho}\right) = \mathbf{a}
 \label{eq:example}
 \end{equation}
 \begin{tabularx}{\textwidth}{@{}l@{\quad}r@{———}X@{}}
-  式中 & $\boldsymbol{\rho}$ & 追踪飞行器与目标飞行器之间的相对位置矢量；\\
-       & $\mathbf{a}$       & 推力所产生的加速度；\\
-       & $\mathbf{R_t}$     & 目标飞行器在惯性坐标系中的位置矢量。
+  式中 & $\bm{\rho}$ & 追踪飞行器与目标飞行器之间的相对位置矢量；\\
+       & $\mathbf{a}$       & 推力所产生的加速度。
 \end{tabularx}
 ```
 
 ---
 
-## 5. 数学符号规范
+## 6. 数学符号规范
 
-模板在 `hithesis.sty` 中预定义了数学符号命令。**必须使用这些命令，不要自己用底层的 LaTeX 命令。**
+所有数学符号均使用 LaTeX 标准命令，无需模板包装。
 
-| 模板命令 | 用途 | 示例 |
+| 标准命令 | 用途 | 示例 |
 |----------|------|------|
-| `\theVector{v}` | 向量（粗体） | $\theVector{v}$ = 速度向量 |
-| `\theMatrix{A}` | 矩阵（黑板粗体） | $\theMatrix{A}$ = 变换矩阵 |
-| `\theSet{S}` | 集合（花体） | $\theSet{S}$ = 切片集合 |
-| `\theNetwork{N}` | 网络 | $\theNetwork{N}$ = 拓扑网络 |
-| `\theDirected{AB}` | 有向边 | $\theDirected{AB}$ = A→B |
-| `\theUndirected{AB}` | 无向边 | $\theUndirected{AB}$ = A—B |
+| `\bm{v}` | 向量/集合（粗斜体，bm 宏包） | $\bm{v} \in \bm{S}$ |
+| `\mathbb{R}` | 矩阵/数集（黑板粗体） | $\mathbb{R}^{m \times n}$ |
+| `\mathscr{L}` | 网络/算子（手写体） | $\mathscr{L}$ |
+| `\overrightarrow{AB}` | 有向边 | $\overrightarrow{AB}$ |
+| `\overline{AB}` | 无向边 | $\overline{AB}$ |
+| `\text{...}` | 正文体（数学模式中插入文字） | $\text{deg}(v)$ |
 
 ```latex
-% 正确用法
-\theVector{v} \in \theSet{S}
+% 正确：直接用标准 LaTeX 命令
+\bm{v} \in \bm{S},\quad \mathbb{R}^{m \times n},\quad \overrightarrow{AB}
 
-% 错误用法（不要这样写）
-\bm{v} \in \mathcal{S}
+% 错误：不要用 \mathbf 代替 \bm（显示效果不同）
+\mathbf{v} \in \mathbf{S}
 ```
 
 ---
 
-## 6. 插入图片
+## 7. 插入图片
 
-### 6.1 把图片放进文件夹
+### 7.1 放图片
 
-先把图片文件（PNG、JPG、PDF、EPS 都可以）放到 `figures/` 文件夹。
+把图片文件（PNG、JPG、PDF、EPS 均可）放到 `figures/` 文件夹。
 
-### 6.2 在正文中插入
+### 7.2 插入
 
 ```latex
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.7\textwidth]{my_figure.png}
-\caption{这是图的中文标题}
+\caption{图的中文标题}
 \label{fig:my_label}
 \end{figure}
 ```
 
-- `[htbp]`：让 LaTeX 自动找位置（h=此处, t=页顶, b=页底, p=单独一页）
-- `width=0.7\textwidth`：图片宽度为页面宽度的 70%
-- `\caption{}`：图标题（只写中文，硕士论文只需中文图题）
-- `\label{}`：贴标签，用于文中引用
+- `width=0.7\textwidth` — 图片宽度 = 页面宽度 × 70%
+- 硕士论文只用中文图题
 
-### 6.3 引用图片
+### 7.3 引用
 
 ```latex
-如图\ref{fig:my_label}所示，事件驱动架构包含三个核心组件。
+如图\ref{fig:my_label}所示...
 ```
 
-输出效果："如图 3-1 所示"
+输出："如图 3-1 所示"
+
+### 7.4 多图并排（子图）
+
+模板已加载 `subfigure` 宏包，支持多张图片并排显示：
+
+```latex
+\begin{figure}[htbp]
+\centering
+\subfigure[子图A标题]{\includegraphics[width=0.45\textwidth]{fig_a.png}}
+\subfigure[子图B标题]{\includegraphics[width=0.45\textwidth]{fig_b.png}}
+\caption{总图标题}
+\label{fig:my_fig}
+\end{figure}
+```
+
+- 每行两张图：各自宽度 0.45\textwidth
+- 每行三张图：各自宽度 0.30\textwidth
+- 子图自动编号为 (a), (b), (c)...
+- 引用子图 `\ref{fig:my_fig}` 输出 "3-1 a)"
 
 ---
 
-## 7. 插入表格
+## 8. 插入表格
 
-学校模板要求使用**三线表**格式（只有顶线、表头线、底线三条横线，没有竖线）。
+学校模板要求**三线表**（顶线粗 / 表头线细 / 底线粗，无竖线）。
 
 ```latex
 \begin{table}[htbp]
-\caption{表的标题（中文）}
+\caption{表的标题}
 \label{tab:my_table}
 \vspace{0.5em}\centering\wuhao
-\begin{tabular}{cccc}   % 4列都居中(c)
+\begin{tabular}{cccc}   % 4 列全部居中 (c = center, l = 左, r = 右)
 \toprule
 列1标题 & 列2标题 & 列3标题 & 列4标题 \\
 \midrule
@@ -259,22 +284,15 @@ V - E + F = 2 \label{eq:euler}
 ```
 
 关键点：
-- `\wuhao` 是 5 号字（模板规定表格用 5 号）
-- `\toprule` = 顶线（粗），`\midrule` = 中间线（细），`\bottomrule` = 底线（粗）
-- `{cccc}` = 4 列全部居中。`l` = 左对齐，`r` = 右对齐
-- 数值用 `\num{12345}` 包裹，会自动加千位分隔空格
-
-### 引用表格
-
-```latex
-如表\ref{tab:my_table}所示，实验结果表明...
-```
+- `\wuhao` = 5 号字（模板规定）
+- `\toprule` / `\midrule` / `\bottomrule` = 三线
+- 引用表格：`如表\ref{tab:my_table}所示`
 
 ---
 
-## 8. 插入伪代码
+## 9. 插入伪代码
 
-模板已加载 `algorithm2e` 宏包。伪代码按以下格式写：
+模板已加载 `algorithm2e` 宏包。伪代码按以下格式：
 
 ```latex
 \begin{algorithm}[htbp]
@@ -282,6 +300,7 @@ V - E + F = 2 \label{eq:euler}
 \label{alg:my_algo}
 \KwIn{输入参数说明}
 \KwOut{输出结果说明}
+
 初始化变量\;
 
 \ForEach{元素 $x$ in 集合 $S$}{
@@ -298,13 +317,14 @@ V - E + F = 2 \label{eq:euler}
 \end{algorithm}
 ```
 
-### 伪代码常用命令
+### 常用命令
 
 | 命令 | 效果 |
 |------|------|
 | `\KwIn{...}` | 输入 |
 | `\KwOut{...}` | 输出 |
 | `\ForEach{...}{...}` | for-each 循环 |
+| `\For{...}{...}` | for 循环 |
 | `\While{...}{...}` | while 循环 |
 | `\Repeat{...}{...}` | repeat-until 循环 |
 | `\If{...}{...}` | if 语句 |
@@ -314,32 +334,47 @@ V - E + F = 2 \label{eq:euler}
 | `\leftarrow` | ← 赋值 |
 | `\emptyset` | ∅ 空集 |
 | `\textbf{break}` | **break**（粗体关键字） |
+| `\textbf{continue}` | **continue** |
+| `\tcp*{注释}` | 行内注释 |
 
-**注意**：不要加 `\DontPrintSemicolon`，模板已经在全局设置好了。
+**注意**：不要写 `\DontPrintSemicolon`，模板已在全局设置。
 
 ---
 
-## 9. 引用文献
+## 10. 引用规范速查
 
-### 9.1 添加参考文献
+模板所有编号均按章编序（如"3-1"表示第 3 章第 1 个）。
 
-在 `reference.bib` 中添加条目。找到一个现成的 bib 条目，复制进去。
+### 10.1 图表算法公式引用
+
+| 对象 | 写法 | 输出示例 |
+|------|------|----------|
+| 图 | `图\ref{fig:xxx}` | 图 3-1 |
+| 表 | `表\ref{tab:xxx}` | 表 3-1 |
+| 算法 | `算法\ref{alg:xxx}` | 算法 3-1 |
+| 公式 | `式\eqref{eq:xxx}` | 式(3-1) |
+
+注意：
+- 图/表/算法用 `\ref{}`，公式用 `\eqref{}`（自动带括号）
+- 子图引用 `\ref{fig:xxx}` → 输出 "3-1 a)"
+
+### 10.2 文献引用
 
 ```bibtex
 @ARTICLE{cnarticle,
-  AUTHOR  = "贾宝玉 and 林黛玉 and 薛宝钗 and 贾探春",
-  TITLE   = "论刘姥姥食量大如牛之现实意义",
-  JOURNAL = "红楼梦杂谈",
+  AUTHOR  = "张三 and 李四",
+  TITLE   = "论文标题",
+  JOURNAL = "期刊名",
   PAGES   = "260--266",
   VOLUME  = "224",
-  YEAR    = "1800",
+  YEAR    = "2024",
   language = "zh",
 }
 ```
 
-其中 `cnarticle` 叫 **引用键（citation key）**，你在正文中用这个名字引用它。
+`cnarticle` 是**引用键**，你在正文中用这个名字引用它。
 
-### 9.2 在正文中引用
+### 10.2 在正文中引用
 
 ```latex
 % 上标引用（最常用）
@@ -351,87 +386,41 @@ V - E + F = 2 \label{eq:euler}
 % 引用并指定页码
 含量测定\cite[100-197]{cnarticle}。
 
-% 正文中直接提及时用 \inlinecite
+% 正文中直接提及（不带上标）
 由文献\inlinecite{hithesis2017}可知...
 ```
 
-### 9.3 怎么获取 bib 条目
+### 10.3 获取 bib 条目
 
-- **Google Scholar**：搜索论文 → 点击"引用" → 选择 BibTeX → 复制
-- **知网**：搜索论文 → 点击"导出" → 选择 EndNote → 导出后手动整理为 BibTeX 格式
-- **Zotero**：用 Zotero 管理文献，一键导出 bib 文件
+- **Google Scholar**：搜索 → 点"引用" → BibTeX → 复制
+- **知网**：搜索 → 导出 → EndNote → 整理成 BibTeX
+- **Zotero**：管理文献，一键导出 bib
 
 ---
 
-## 10. 字号修改
+## 11. 字号修改
 
-模板已经预设了全部字号，一般不需要改。如果确实需要调整，可以临时使用：
+模板已预设全部字号，一般不需要改。需要时可用：
 
 | 命令 | 大小 | 用途 |
 |------|------|------|
-| `\wuhao` | 5 号 | 表格、图题 |
+| `\wuhao` | 5 号 | 表格、图题、算法标题 |
 | `\xiaowu` | 小 5 号 | 表格内容较多时 |
-| `\normalsize` | 恢复正常 | 局部改字号后恢复 |
-| `\small` | 略小 | -- |
-| `\footnotesize` | 更小 | 脚注 |
+| `\normalsize` | 恢复默认 | 局部改字号后恢复 |
 
-**示例**：如果表格内容太多，把 5 号改成小 5 号：
-
-```latex
-\begin{table}[htbp]
-\caption{表格标题}
-\vspace{0.5em}\centering\xiaowu    % ← 这里改
-\begin{tabular}{cccc}
-...
-```
-
-**不建议在论文正文中随意改字号**，学校规范规定了各级标题和正文的字号，模板已经自动处理好了。
+**不建议在正文中随意改字号**，模板已按要求自动处理。
 
 ---
 
-## 11. 常见问题
+## 12. 常见问题
 
-### Q1：编译报错 "Undefined control sequence"
-→ 检查命令名是否拼写错误。常见错误：`\ref` 写成了 `\Ref`，`\eqref` 写成了 `\eqRef`。
-
-### Q2：引用显示 "??"
-→ 再编译一次。LaTeX 需要编译两次才能正确显示交叉引用。`latexmk` 会自动处理。
-
-### Q3：图片不显示
-→ 检查图片是否放在 `figures/` 文件夹中，文件名是否完全一致（含扩展名）。
-
-### Q4：中文显示为乱码
-→ 确认文件编码是 UTF-8。文件第一行必须有 `% !Mode:: "TeX:UTF-8"`。
-
-### Q5：表格太宽超出页面
-→ 把 `\begin{tabular}{cccc}` 改成 `\begin{tabularx}{\textwidth}{...}` (需要确认宏包已加载)，或者缩小字号到 `\xiaowu`。
-
-### Q6：段首没有缩进
-→ 模板已自动设置，如果某段不需要缩进，前面加 `\noindent`。
-
-### Q7：公式太长需要换行
-→ 等号处换行：
-```latex
-\begin{equation}
-\begin{aligned}
-V &= a + b + c + d + e \\
-  &= f + g + h
-\end{aligned}
-\end{equation}
-```
-
-### Q8：LaTeX 在哪下载
-→ 推荐安装 TeX Live（跨平台，免费）：https://tug.org/texlive/
-→ Windows 用户也可以安装 MiKTeX：https://miktex.org/
-
----
-
-## 附录：一份完整章节的写作流程
-
-1. **创建章节文件** `body/chapterN.tex`
-2. **在 `thesis.tex` 中添加** `\include{body/chapterN}`
-3. **写标题**：`\chapter{中文}[English]`
-4. **写各节内容**：文字 + 公式 + 图表 + 伪代码
-5. **编译**：`latexmk -r latexmkrc thesis`
-6. **检查**：打开 PDF 查看效果
-7. **重复 4-6** 直到满意
+| 问题 | 原因 | 解决 |
+|------|------|------|
+| 编译报 "Undefined control sequence" | 命令拼写错误 | 检查 `\ref` 不是 `\Ref`，`\eqref` 不是 `\eqRef` |
+| 引用显示 "??" | 需再编译一次 | `latexmk` 会自动处理，再跑一次 |
+| 图片不显示 | 文件名不匹配或路径不对 | 确认图片在 `figures/`，文件名完全一致 |
+| 中文显示乱码 | 编码不是 UTF-8 | 文件第一行必须有 `% !Mode:: "TeX:UTF-8"` |
+| 表格太宽 | 列太多或内容太长 | 缩小字号到 `\xiaowu` 或减少列 |
+| 段首没缩进 | 模板已自动设 | 某段不要缩进时前面加 `\noindent` |
+| 公式太长需换行 | align 环境 | `\begin{aligned}` 在等号处用 `&` 对齐，`\\` 换行 |
+| 中文逗号显示为英文逗号 | 字体问题 | `thesis.tex` 中 `fontset=windows` 已修复 |
