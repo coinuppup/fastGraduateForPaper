@@ -76,7 +76,7 @@ h=H(Q_{x})\oplus H(Q_{y})\ll 1\oplus H(Q_{z})\ll 2 \label{eq:hash}
 
 当通过哈希索引$h$定位到对应的哈希桶之后，通过按照式\eqref{eq:tolerance}完成精确的等值判定，如果哈希表中不存在对应记录，则说明该顶点首次出现，为其分配新的全局顶点编号$i$，否则复用已有的顶点索引。
 
-在完成顶点唯一化之后，原始STL模型中顶点被统一映射到全局的顶点集合$V$中，如图所示，此时任意一个三角形面片可以表示为$f_{k}=(I_{v0},I_{v1},I_{v2})$，其中$I_{v0}$、$I_{v1}$、$I_{v2}$分别表示三个顶点在$V$中的全局索引编号，且每个面片天然包含三条边$(I_{v0},I_{v1})$、$(I_{v1},I_{v2})$、$(I_{v2},I_{v0})$。为消除边的方向歧义、构建统一无向边检索标准，每一条边根据式\eqref{eq:edge_norm}对两端顶点索引数值进行升序标准化处理：
+在完成顶点唯一化之后，原始STL模型中顶点被统一映射到全局的顶点集合$\bm{V}$中，如图所示，此时任意一个三角形面片可以表示为$f_{k}=(I_{v0},I_{v1},I_{v2})$，其中$I_{v0}$、$I_{v1}$、$I_{v2}$分别表示三个顶点在$\bm{V}$中的全局索引编号，且每个面片天然包含三条边$(I_{v0},I_{v1})$、$(I_{v1},I_{v2})$、$(I_{v2},I_{v0})$。为消除边的方向歧义、构建统一无向边检索标准，每一条边根据式\eqref{eq:edge_norm}对两端顶点索引数值进行升序标准化处理：
 
 \begin{equation}
 \kappa=(\min(u,v),\max(u,v)) \label{eq:edge_norm}
@@ -113,7 +113,7 @@ h=H(Q_{x})\oplus H(Q_{y})\ll 1\oplus H(Q_{z})\ll 2 \label{eq:hash}
 \item 当三条边处理完成后，生成当前面片记录，并保存顶点索引、边索引以及法向量等信息。
 \item 利用当前面片顶点坐标更新模型空间边界范围。
 \item 全部面片解析结束后，根据共享边记录补充面片邻接信息，建立完整拓扑连接关系。
-\item 输出顶点集合$V$、边集合$E$、面片集合$F$以及模型包围盒，完成STL模型拓扑重建。
+\item 输出顶点集合$\bm{V}$、边集合$\bm{E}$、面片集合$\bm{F}$以及模型包围盒，完成STL模型拓扑重建。
 \end{enumerate}
 
 \begin{figure}[htbp]
@@ -188,46 +188,46 @@ L_{k\mathrm{start}}, & \text{else}.
 
 获得各面片的候选层范围后，本文提出一种事件驱动扫掠算法来快速构建各层的活跃面片集。算法\ref{alg:sweep}给出了事件驱动扫掠的完整流程。每个面片在其候选层范围的起始位置产生一个进入事件，在结束位置的下一层产生一个离开事件，通过维护一个动态更新的活跃面片列表，在逐层推进中仅处理当前活跃的面片。
 
-事件桶就绪后，算法自底向上逐层扫掠。算法维护三个并行数据结构，活跃状态标记数组$\alpha_{k}$记录每个面片当前是否活跃，初始值为0表示非活跃；活跃面片列表$A$以动态数组形式存储当前全部活跃面片的索引，支持常数时间的尾部追加；位置索引数组$\pi$记录每个活跃面片在$A$中的具体位置。
+事件桶就绪后，算法自底向上逐层扫掠。算法维护三个并行数据结构，活跃状态标记数组$\bm{\alpha}_{k}$记录每个面片当前是否活跃，初始值为0表示非活跃；活跃面片列表$\bm{A}$以动态数组形式存储当前全部活跃面片的索引，支持常数时间的尾部追加；位置索引数组$\bm{\pi}$记录每个活跃面片在$\bm{A}$中的具体位置。
 
 对第$l$层，扫掠过程分为两个阶段。第一阶段处理进入事件，如果当前面片尚未标记为激活则标记为活跃，记录其在列表中的位置，并且追加到列表的尾部中。第二阶段处理离开事件，如果面片仍处于活跃状态则将其移除。删除操作的时候，首先将待移除面片与列表末尾面片交换位置，更新被交换面片的位置索引，然后才弹出尾部元素。
 
-上述两个步骤执行完成之后，$A$中存储第$l$层完整活跃面片集合。整个扫掠过程中每个面片只被处理两次，一次进入、一次离开。设第$l$层活跃面片集合大小为$|A_{l}|$，算法总时间复杂度为$O(K+L+\sum|A_{l}|)$。实际模型中单个面片的$Z$向跨度远小于模型总高，$|A_{l}|\ll K$恒成立，均匀网格下时间复杂度接近$O(K+L)$。
+上述两个步骤执行完成之后，$\bm{A}$中存储第$l$层完整活跃面片集合。整个扫掠过程中每个面片只被处理两次，一次进入、一次离开。设第$l$层活跃面片集合大小为$|\bm{A}_{l}|$，算法总时间复杂度为$O(K+L+\sum|\bm{A}_{l}|)$。实际模型中单个面片的$Z$向跨度远小于模型总高，$|\bm{A}_{l}|\ll K$恒成立，均匀网格下时间复杂度接近$O(K+L)$。
 
 \begin{algorithm}[htbp]
 \caption{基于事件驱动扫掠的相交集合构建算法}
 \label{alg:sweep}
-\KwIn{面片集合$F$，切片层数$L$，各面片候选层范围$[L_{k\mathrm{start}}',L_{k\mathrm{end}}]$}
-\KwOut{各层的活跃面片集$A_{l}$，$l=0,\ldots,L-1$}
+\KwIn{面片集合$\bm{F}$，切片层数$L$，各面片候选层范围$[L_{k\mathrm{start}}',L_{k\mathrm{end}}]$}
+\KwOut{各层的活跃面片集$\bm{A}_{l}$，$l=0,\ldots,L-1$}
 
-初始化事件桶 $B^{\mathrm{enter}}[0\ldots L-1]$，$B^{\mathrm{exit}}[0\ldots L]$\;
-\ForEach{面片$f_{k}\in F$}{
-    $B^{\mathrm{enter}}[L_{k\mathrm{start}}'].\mathrm{append}(k)$\;
-    $B^{\mathrm{exit}}[L_{k\mathrm{end}}+1].\mathrm{append}(k)$\;
+初始化事件桶 $\bm{B}^{\mathrm{enter}}[0\ldots L-1]$，$\bm{B}^{\mathrm{exit}}[0\ldots L]$\;
+\ForEach{面片$f_{k}\in \bm{F}$}{
+    $\bm{B}^{\mathrm{enter}}[L_{k\mathrm{start}}'].\mathrm{append}(k)$\;
+    $\bm{B}^{\mathrm{exit}}[L_{k\mathrm{end}}+1].\mathrm{append}(k)$\;
 }
-初始化 $\alpha[0\ldots K-1]\leftarrow 0$，$\pi[0\ldots K-1]\leftarrow -1$\;
-初始化 $A\leftarrow\emptyset$\;
+初始化 $\bm{\alpha}[0\ldots K-1]\leftarrow 0$，$\bm{\pi}[0\ldots K-1]\leftarrow -1$\;
+初始化 $\bm{A}\leftarrow\emptyset$\;
 \For{$l\leftarrow 0$ \KwTo $L-1$}{
-    \ForEach{$k\in B^{\mathrm{enter}}[l]$}{
-        \If{$\alpha_{k}=0$}{
-            $\alpha_{k}\leftarrow 1$\;
-            $\pi_{k}\leftarrow |A|$\;
-            $A.\mathrm{append}(k)$\;
+    \ForEach{$k\in \bm{B}^{\mathrm{enter}}[l]$}{
+        \If{$\bm{\alpha}_{k}=0$}{
+            $\bm{\alpha}_{k}\leftarrow 1$\;
+            $\bm{\pi}_{k}\leftarrow |\bm{A}|$\;
+            $\bm{A}.\mathrm{append}(k)$\;
         }
     }
-    \ForEach{$k\in B^{\mathrm{exit}}[l]$}{
-        \If{$\alpha_{k}=1$}{
-            $\alpha_{k}\leftarrow 0$\;
-            $\mathrm{pos}\leftarrow\pi_{k}$\;
-            $\mathrm{last}\leftarrow A.\mathrm{back}()$\;
-            $A[\mathrm{pos}]\leftarrow\mathrm{last}$\;
-            $\pi_{\mathrm{last}}\leftarrow\mathrm{pos}$\;
-            $A.\mathrm{pop\_back}()$\;
+    \ForEach{$k\in \bm{B}^{\mathrm{exit}}[l]$}{
+        \If{$\bm{\alpha}_{k}=1$}{
+            $\bm{\alpha}_{k}\leftarrow 0$\;
+            $\mathrm{pos}\leftarrow\bm{\pi}_{k}$\;
+            $\mathrm{last}\leftarrow \bm{A}.\mathrm{back}()$\;
+            $\bm{A}[\mathrm{pos}]\leftarrow\mathrm{last}$\;
+            $\bm{\pi}_{\mathrm{last}}\leftarrow\mathrm{pos}$\;
+            $\bm{A}.\mathrm{pop\_back}()$\;
         }
     }
-    $A_{l}\leftarrow A$\;  // 第$l$层的活跃面片集合
+    $\bm{A}_{l}\leftarrow \bm{A}$\;  // 第$l$层的活跃面片集合
 }
-\Return{$\{A_{0},A_{1},\ldots,A_{L-1}\}$}\;
+\Return{$\{\bm{A}_{0},\bm{A}_{1},\ldots,\bm{A}_{L-1}\}$}\;
 \end{algorithm}
 
 \section{构建切片轮廓}\label{sec:contour}
@@ -287,16 +287,16 @@ P_{\mathrm{int}}=P_i+t\cdot(P_j-P_i).
 \label{fig:intersect_cases}
 \end{figure}
 
-算法\ref{alg:edge_extract}给出了第$l$层相交边提取的完整流程，活跃面片集合$A_{l}$确定后，遍历$A_{l}$中每个面片的三条边，参照式\eqref{eq:edge_intersect}执行相交判定，跳过不相交的边。一条边通常被两个相邻面片共享，如果这两个面片在同一个$Z$高度同时活跃，该边将被重复收集两次，一个与边数组等长的整型标记数组$tag$实现常数时间去重，初始值为$-1$。处理第$l$层时，若全局边$e$首次被发现与切平面相交，则将标记值设为$l$并将$e$加入$E_{l}$；若$tag[e]=l$则表明该边已被同层面片处理过，直接跳过。标记数组在层间切换时天然处于可用状态，第$l$层使用整数值$l$作为标记，第$l+1$层使用$l+1$，新旧标记自然区分，不需要显式清零操作。
+算法\ref{alg:edge_extract}给出了第$l$层相交边提取的完整流程，活跃面片集合$\bm{A}_{l}$确定后，遍历$\bm{A}_{l}$中每个面片的三条边，参照式\eqref{eq:edge_intersect}执行相交判定，跳过不相交的边。一条边通常被两个相邻面片共享，如果这两个面片在同一个$Z$高度同时活跃，该边将被重复收集两次，一个与边数组等长的整型标记数组$\bm{\mathrm{tag}}$实现常数时间去重，初始值为$-1$。处理第$l$层时，若全局边$e$首次被发现与切平面相交，则将标记值设为$l$并将$e$加入$\bm{E}_{l}$；若$\bm{\mathrm{tag}}[e]=l$则表明该边已被同层面片处理过，直接跳过。标记数组在层间切换时天然处于可用状态，第$l$层使用整数值$l$作为标记，第$l+1$层使用$l+1$，新旧标记自然区分，不需要显式清零操作。
 
 \begin{algorithm}[htbp]
 \caption{相交边提取以及层内去重}
 \label{alg:edge_extract}
-\KwIn{第$l$层活跃面片集合$A_{l}$，第$l$层的层高$Z_{l}$，标记数组$tag$}
-\KwOut{相交边集合$E_{l}$}
+\KwIn{第$l$层活跃面片集合$\bm{A}_{l}$，第$l$层的层高$Z_{l}$，标记数组$\bm{\mathrm{tag}}$}
+\KwOut{相交边集合$\bm{E}_{l}$}
 
-$E_{l}\leftarrow\emptyset$\;
-\ForEach{面片$f_{k}\in A_{l}$}{
+$\bm{E}_{l}\leftarrow\emptyset$\;
+\ForEach{面片$f_{k}\in \bm{A}_{l}$}{
     $c\leftarrow 0$\;
     \ForEach{$j\in\{I_{e0},I_{e1},I_{e2}\}$}{
         取端点$Z$坐标 $z_{u},z_{v}$\;
@@ -304,41 +304,41 @@ $E_{l}\leftarrow\emptyset$\;
             \textbf{continue}\;
         }
         \If{$\min(z_{u},z_{v})\le Z_{l}\le\max(z_{u},z_{v})$}{
-            \If{$tag[j]\neq l$}{
-                $tag[j]\leftarrow l$\;
-                $E_{l}.\mathrm{push}(j)$\;
+            \If{$\bm{\mathrm{tag}}[j]\neq l$}{
+                $\bm{\mathrm{tag}}[j]\leftarrow l$\;
+                $\bm{E}_{l}.\mathrm{push}(j)$\;
             }
             $c\leftarrow c+1$\;
         }
     }
 }
-\Return{$E_{l}$}\;
+\Return{$\bm{E}_{l}$}\;
 \end{algorithm}
 
 \subsection{基于边行走的轮廓构建及后处理}
 
 提取出每一层的相交边集合之后，本文采用基于拓扑边的方式实现轮廓提取。在\ref{sec:topo}节中已为每一条全局边$j$建立了邻接关系$\kappa\to(j,p_{j},q_{j})$，其中$p_{j}$和$q_{j}$为这一条边的两个连接面片索引，$f_{k}\to(I_{v0},I_{v1},I_{v2})$。全局拓扑结构在切片过程中不再改变，所有层共享同一份拓扑数据。
 
-具体的轮廓算法如算法\ref{alg:contour_walk}所示。当进入当前层计算时，遍历当前层的有效边集合$E_{l}$，随机寻找状态未使用的边作为起始种子边，通过种子边的全局唯一索引$j_{\mathrm{seed}}$找到这条边两个邻接面片索引，如果邻接面片索引中有一个值为$-1$，则说明这条边处于模型的开放边界，在物理上是无法形成闭合轮廓，直接标记为已经使用并且跳过，继续寻找下一个种子面片。如果校验通过，则初始化有序相交边序列$P=\{j_{\mathrm{seed}}\}$，选取这条边的任意一个活跃面片作为起始面片$f_{k}$，进入边的游走阶段。基于边游走时，以当前面片$f_{k}$和当前边$j_{\mathrm{cur}}$为基准，提取出当前面片的三条边的索引$(I_{e0},I_{e1},I_{e2})$，排除当前边$j_{\mathrm{cur}}$，判断剩下的两条边是否能够在边活跃集合$E_{l}$中找到并且还活跃。在前置过程构建边活跃集合中，我们已经讨论过，一个面片只有2条边能够加入到活跃面片集合中，所以在这一阶段，恰好只有一条边满足条件，将其记录为下一条拓展边$j_{\mathrm{next}}$。然后，判断找到的拓展边$j_{\mathrm{next}}$是否等于$j_{\mathrm{seed}}$，如果$j_{\mathrm{next}}=j_{\mathrm{seed}}$二者相等，说明此时回到最开始的种子边上，此时轮廓已经闭合，终止当前游走。相反的，如果判断$j_{\mathrm{next}}\neq j_{\mathrm{seed}}$，则轮廓还没有闭合，将$j_{\mathrm{next}}$放入有序序列$P$中，通过边索引$j_{\mathrm{next}}$查询到对边邻接的面片记录$(p_{j_{\mathrm{next}}},q_{j_{\mathrm{next}}})$，排除当前正在遍历的面片$k$，把另外一个面片选定为下一阶段的面片$f_{k_{\mathrm{next}}}$。对选定下一阶段的面片校验，如果$k_{\mathrm{next}}$不存在于活跃面片集合$A_{l}$中，则说明路径延伸到了非活跃区域，游走终止；否则，将$j_{\mathrm{cur}}$更新为$j_{\mathrm{next}}$，$k$更新为$k_{\mathrm{next}}$，重复第5至11行的逻辑，直至边游走结束得到有序序列$P$。最后判断$|P|$是否大于等于3，按照式\eqref{eq:linear_interp}对有序序列$P$中每一条边执行线性插值，就可以求出切片平面与当前相交平面的交点坐标，最后就是将交点按照有序序列$P$中的顺序组合成有序序列$c$，放入到当前层的原始轮廓的集合$C_{l}$中。
+具体的轮廓算法如算法\ref{alg:contour_walk}所示。当进入当前层计算时，遍历当前层的有效边集合$\bm{E}_{l}$，随机寻找状态未使用的边作为起始种子边，通过种子边的全局唯一索引$j_{\mathrm{seed}}$找到这条边两个邻接面片索引，如果邻接面片索引中有一个值为$-1$，则说明这条边处于模型的开放边界，在物理上是无法形成闭合轮廓，直接标记为已经使用并且跳过，继续寻找下一个种子面片。如果校验通过，则初始化有序相交边序列$\bm{P}=\{j_{\mathrm{seed}}\}$，选取这条边的任意一个活跃面片作为起始面片$f_{k}$，进入边的游走阶段。基于边游走时，以当前面片$f_{k}$和当前边$j_{\mathrm{cur}}$为基准，提取出当前面片的三条边的索引$(I_{e0},I_{e1},I_{e2})$，排除当前边$j_{\mathrm{cur}}$，判断剩下的两条边是否能够在边活跃集合$\bm{E}_{l}$中找到并且还活跃。在前置过程构建边活跃集合中，我们已经讨论过，一个面片只有2条边能够加入到活跃面片集合中，所以在这一阶段，恰好只有一条边满足条件，将其记录为下一条拓展边$j_{\mathrm{next}}$。然后，判断找到的拓展边$j_{\mathrm{next}}$是否等于$j_{\mathrm{seed}}$，如果$j_{\mathrm{next}}=j_{\mathrm{seed}}$二者相等，说明此时回到最开始的种子边上，此时轮廓已经闭合，终止当前游走。相反的，如果判断$j_{\mathrm{next}}\neq j_{\mathrm{seed}}$，则轮廓还没有闭合，将$j_{\mathrm{next}}$放入有序序列$\bm{P}$中，通过边索引$j_{\mathrm{next}}$查询到对边邻接的面片记录$(p_{j_{\mathrm{next}}},q_{j_{\mathrm{next}}})$，排除当前正在遍历的面片$k$，把另外一个面片选定为下一阶段的面片$f_{k_{\mathrm{next}}}$。对选定下一阶段的面片校验，如果$k_{\mathrm{next}}$不存在于活跃面片集合$\bm{A}_{l}$中，则说明路径延伸到了非活跃区域，游走终止；否则，将$j_{\mathrm{cur}}$更新为$j_{\mathrm{next}}$，$k$更新为$k_{\mathrm{next}}$，重复第5至11行的逻辑，直至边游走结束得到有序序列$\bm{P}$。最后判断$|\bm{P}|$是否大于等于3，按照式\eqref{eq:linear_interp}对有序序列$\bm{P}$中每一条边执行线性插值，就可以求出切片平面与当前相交平面的交点坐标，最后就是将交点按照有序序列$\bm{P}$中的顺序组合成有序序列$c$，放入到当前层的原始轮廓的集合$\bm{C}_{l}$中。
 
 \begin{algorithm}[htbp]
 \caption{基于拓扑边环的轮廓提取}
 \label{alg:contour_walk}
-\KwIn{相交边集合$E_{l}$，活跃面片集合$A_{l}$，边-邻接面片映射$\{\kappa\to(j,p_{j},q_{j})\}$}
-\KwOut{原始轮廓集合$C_{l}$}
+\KwIn{相交边集合$\bm{E}_{l}$，活跃面片集合$\bm{A}_{l}$，边-邻接面片映射$\{\kappa\to(j,p_{j},q_{j})\}$}
+\KwOut{原始轮廓集合$\bm{C}_{l}$}
 
-$C_{l}\leftarrow\emptyset$\;
-\While{存在$j_{\mathrm{seed}}\in E_{l}$未使用}{
+$\bm{C}_{l}\leftarrow\emptyset$\;
+\While{存在$j_{\mathrm{seed}}\in \bm{E}_{l}$未使用}{
     取种子面片$(p_{j_{\mathrm{seed}}},q_{j_{\mathrm{seed}}})$\;
     \If{$p_{j_{\mathrm{seed}}}=-1$ \textbf{or} $q_{j_{\mathrm{seed}}}=-1$}{
         \textbf{continue}\;
     }
     $j_{\mathrm{cur}}\leftarrow j_{\mathrm{seed}}$\;
-    $P\leftarrow\{j_{\mathrm{seed}}\}$\;
+    $\bm{P}\leftarrow\{j_{\mathrm{seed}}\}$\;
     $\mathrm{closed}\leftarrow\mathrm{false}$\;
-    取$k$为$j_{\mathrm{seed}}$在$A_{l}$中的有效邻接面片索引\;
-    \For{$s\leftarrow 0$ \KwTo $2|E_{l}|$}{
-        在面片$f_{k}$的三边映射$(I_{e0},I_{e1},I_{e2})$中查找$j_{\mathrm{next}}\in E_{l}$，且$j_{\mathrm{next}}\neq j_{\mathrm{cur}}$，且未使用\;
+    取$k$为$j_{\mathrm{seed}}$在$\bm{A}_{l}$中的有效邻接面片索引\;
+    \For{$s\leftarrow 0$ \KwTo $2|\bm{E}_{l}|$}{
+        在面片$f_{k}$的三边映射$(I_{e0},I_{e1},I_{e2})$中查找$j_{\mathrm{next}}\in \bm{E}_{l}$，且$j_{\mathrm{next}}\neq j_{\mathrm{cur}}$，且未使用\;
         \If{未找到满足条件的边}{
             \textbf{break}\;
         }
@@ -346,25 +346,25 @@ $C_{l}\leftarrow\emptyset$\;
             $\mathrm{closed}\leftarrow\mathrm{true}$\;
             \textbf{break}\;
         }
-        $P.\mathrm{push}(j_{\mathrm{next}})$\;
+        $\bm{P}.\mathrm{push}(j_{\mathrm{next}})$\;
         获取$\kappa_{\mathrm{next}}\to(j_{\mathrm{next}},p_{j_{\mathrm{next}}},q_{j_{\mathrm{next}}})$\;
         $k_{\mathrm{next}}\leftarrow(p_{j_{\mathrm{next}}}\neq k)\;?\;p_{j_{\mathrm{next}}}:q_{j_{\mathrm{next}}}$\;
-        \If{$k_{\mathrm{next}}\notin A_{l}$}{
+        \If{$k_{\mathrm{next}}\notin \bm{A}_{l}$}{
             \textbf{break}\;
         }
         $j_{\mathrm{cur}}\leftarrow j_{\mathrm{next}}$\;
         $f_{k}\leftarrow f_{k_{\mathrm{next}}}$\;
     }
-    \If{$\mathrm{closed}$ \textbf{and} $|P|\ge 3$}{
-        $c\leftarrow\mathrm{Interp}(P)$\;
+    \If{$\mathrm{closed}$ \textbf{and} $|\bm{P}|\ge 3$}{
+        $c\leftarrow\mathrm{Interp}(\bm{P})$\;
         $c.\mathrm{push}(c_{0})$\;
-        $C_{l}.\mathrm{push}(c)$\;
+        $\bm{C}_{l}.\mathrm{push}(c)$\;
     }
 }
-\Return{原始轮廓集合$C_{l}$}\;
+\Return{原始轮廓集合$\bm{C}_{l}$}\;
 \end{algorithm}
 
-在目前基于拓扑边的来构建轮廓的算法中，每一条边在当前层中只会使用一次，且使用完之后就会被标记为非活跃边，理论上不存在轮廓重复的问题，并经过试验验证了多个不同的模型，数据如表格所示，证明理论成立。所以本论文中在轮廓构建完成之后不做轮廓的去重处理。在轮廓构建完之后，本论文只对实际面积小于$\num{1}\,\mathrm{mm}^{2}$的轮廓执行过滤，因为这些极其小的轮廓在实际打印中往往打印不出来。如图所示，根据多边形的轮廓点序列$P=(x_{i},y_{i}),i=0,1,\ldots,n-1$的面积$S$计算方式如下：
+在目前基于拓扑边的来构建轮廓的算法中，每一条边在当前层中只会使用一次，且使用完之后就会被标记为非活跃边，理论上不存在轮廓重复的问题，并经过试验验证了多个不同的模型，数据如表格所示，证明理论成立。所以本论文中在轮廓构建完成之后不做轮廓的去重处理。在轮廓构建完之后，本论文只对实际面积小于$\num{1}\,\mathrm{mm}^{2}$的轮廓执行过滤，因为这些极其小的轮廓在实际打印中往往打印不出来。如图所示，根据多边形的轮廓点序列$\bm{P}=(x_{i},y_{i}),i=0,1,\ldots,n-1$的面积$S$计算方式如下：
 
 \begin{equation}
 S=\dfrac{1}{2}\left|\sum_{i=0}^{n-1}\left(x_i y_{i+1}-x_{i+1}y_i\right)\right| \label{eq:polygon_area}
