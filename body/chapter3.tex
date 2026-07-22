@@ -189,42 +189,42 @@ L_{\mathrm{start}}, & \text{else}.
 \begin{algorithm}[htbp]
   \caption{基于事件驱动扫掠的相交集合构建算法}
   \label{alg:event_sweep}
-  \nl \textbf{Input:} 面片集合 $F$，切片层数 $L$，各面片候选层范围 $[L'_{k\mathrm{start}}, L_{k\mathrm{end}}]$\;
-  \nl \textbf{Output:} 各层的活跃面片集 $A_l$，$l = 0, \ldots, L-1$\;
+  \nl \textbf{Input:} 面片集合 $\mathbf{F}$，切片层数 $L$，各面片候选层范围 $[L'_{k\mathrm{start}}, L_{k\mathrm{end}}]$\;
+  \nl \textbf{Output:} 各层的活跃面片集 $\mathbf{A}_l$，$l = 0, \ldots, L-1$\;
   \BlankLine
   Initialize $B^{\mathrm{enter}}[0\ldots L-1]$, $B^{\mathrm{exit}}[0\ldots L]$\;
-  \ForEach{$f_k \in F$}{
+  \ForEach{$f_k \in \mathbf{F}$}{
     $B^{\mathrm{enter}}[L'_{k\mathrm{start}}].\mathrm{append}(k)$\;
     $B^{\mathrm{exit}}[L_{k\mathrm{end}}+1].\mathrm{append}(k)$\;
   }
   Initialize $\alpha[0\ldots K-1] \leftarrow 0$, $\pi[0\ldots K-1] \leftarrow -1$\;
-  Initialize $A \leftarrow \emptyset$\;
+  Initialize $\mathbf{A} \leftarrow \emptyset$\;
   \For{$l \leftarrow 0$ \KwTo $L-1$}{
     \ForEach{$k \in B^{\mathrm{enter}}[l]$}{
       \If{$\alpha_k = 0$}{
         $\alpha_k \leftarrow 1$\;
-        $\pi_k \leftarrow |A|$\;
-        $A.\mathrm{append}(k)$\;
+        $\pi_k \leftarrow |\mathbf{A}|$\;
+        $\mathbf{A}.\mathrm{append}(k)$\;
       }
     }
     \ForEach{$k \in B^{\mathrm{exit}}[l]$}{
       \If{$\alpha_k = 1$}{
         $\alpha_k \leftarrow 0$\;
         $pos \leftarrow \pi_k$\;
-        $last \leftarrow A.\mathrm{back}()$\;
-        $A[pos] \leftarrow last$\;
+        $last \leftarrow \mathbf{A}.\mathrm{back}()$\;
+        $\mathbf{A}[pos] \leftarrow last$\;
         $\pi_{last} \leftarrow pos$\;
-        $A.\mathrm{pop\_back}()$\;
+        $\mathbf{A}.\mathrm{pop\_back}()$\;
       }
     }
-    $A_l \leftarrow A$\; \tcp{第 $l$ 层的活跃面片集合}
+    $\mathbf{A}_l \leftarrow \mathbf{A}$ \tcp{第 $l$ 层的活跃集}\;
   }
-  \Return{$\{A_0, A_1, \ldots, A_{L-1}\}$}\;
+  \Return{$\{\mathbf{A}_0, \mathbf{A}_1, \ldots, \mathbf{A}_{L-1}\}$}\;
 \end{algorithm}
 
 \section{构建切片轮廓}
 
-本文中的切片算法，实际划分为四个阶段，Phase 1完成事件桶的构建，Phase 2逐层更新活跃集、相交边提取和层内去重，其中更新活跃面片集合在3.4.2节中已经提及，Phase 3通过边种子行走将相交边组织为闭合轮廓，Phase 4对轮廓执行去重。
+本文中的切片算法，实际划分为四个阶段，Phase 1完成事件桶的构建，Phase 2逐层更新活跃面片集合、相交边提取和层内去重，其中更新活跃面片集合在3.4.2节中已经提及，Phase 3通过边种子行走将相交边组织为闭合轮廓，Phase 4对轮廓执行去重。
 
 \begin{figure}[htbp]
   \centering
@@ -275,27 +275,28 @@ P_{\mathrm{int}}=P_i+t\cdot(P_j-P_i).
 \begin{algorithm}[htbp]
   \caption{相交边提取以及层内去重}
   \label{alg:edge_extract}
-  \nl \textbf{Input:} 第 $l$ 层活跃面片集合 $A_l$，第 $l$ 层的层高 $Z_l$，标记数组 $tag$\;
-  \nl \textbf{Output:} $E_l$\;
+  \nl \textbf{Input:} 第 $l$ 层活跃集 $\mathbf{A}_l$，第 $l$ 层的层高 $Z_l$，标记数组 $tag$\;
+  \nl \textbf{Output:} $\mathbf{E}_l$\;
   \BlankLine
-  $E_l \leftarrow \emptyset$\;
-  \ForEach{$f_k \in A_l$}{
+  $\mathbf{E}_l \leftarrow \emptyset$\;
+  \ForEach{$f_k \in \mathbf{A}_l$}{
     $c \leftarrow 0$\;
-    \ForEach{$j \in \{I_{e0}, I_{e1}, I_{e2}\}$}{
+    \For Each{$j \in \{I_{e0}, I_{e1}, I_{e2}\}$}{
       取端点 $Z$ 坐标 $z_u$, $z_v$\;
       \If{$|z_u-z_v| < 10^{-12}$}{
-        continue\; \tcp{平行边跳过}
+        continue \tcp{平行边跳过}\;
       }
-      \If{$\min(z_u,z_v) \le Z_l \le \max(z_u,z_v)$}{ \tcp{边 $j$ 与平面相交}
+      \If{$\min(z_u,z_v) \le Z_l \le \max(z_u,z_v)$}{
+        \tcp*{边 $j$ 与平面相交}
         \If{$tag[j] \ne l$}{
           $tag[j] \leftarrow l$\;
-          $E_l.\mathrm{push}(j)$\; \tcp{层内去重}
+          $\mathbf{E}_l.\mathrm{push}(j)$ \tcp{层内去重}\;
         }
         $c \leftarrow c + 1$\;
       }
     }
   }
-  \Return{$E_l$}\;
+  \Return{$\mathbf{E}_l$}\;
 \end{algorithm}
 
 \subsection{基于边行走的轮廓构建及后处理}
