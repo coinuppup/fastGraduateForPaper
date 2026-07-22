@@ -1,19 +1,83 @@
 {
+    // ========== LaTeX Workshop 核心配置 ==========
+
     "latex-workshop.latex.tools": [
         {
             "name": "latexmk",
-            "command": "D:\\smallsoftware\\texlive\\2026\\bin\\windows\\latexmk.exe",
+            "command": "latexmk",
             "args": [
                 "-r",
                 "latexmkrc",
                 "%DOC%"
             ]
+        },
+        {
+            "name": "xelatex",
+            "command": "xelatex",
+            "args": [
+                "-file-line-error",
+                "--shell-escape",
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "%DOC%"
+            ]
+        },
+        {
+            "name": "bibtex",
+            "command": "bibtex",
+            "args": [
+                "%DOCFILE%"
+            ]
         }
     ],
+
     "latex-workshop.latex.recipes": [
         {
-            "name": "latexmk",
+            "name": "latexmk (推荐)",
             "tools": ["latexmk"]
+        },
+        {
+            "name": "xelatex × 2 + bibtex + xelatex × 2",
+            "tools": ["xelatex", "bibtex", "xelatex", "xelatex"]
         }
-    ]
+    ],
+
+    "latex-workshop.latex.clean": {
+        "fileTypes": [
+            "*.aux", "*.bbl", "*.blg", "*.idx", "*.ilg", "*.ind",
+            "*.lof", "*.lot", "*.out", "*.toc", "*.acn", "*.acr",
+            "*.alg", "*.glg", "*.glo", "*.gls", "*.ist", "*.fls",
+            "*.log", "*.fdb_latexmk", "*.synctex.gz", "*.brf",
+            "*.thm", "*.toe", "*.run.xml", "*.xdv", "*.bcf"
+        ]
+    },
+
+    // ========== 自动编译与预览 ==========
+
+    "latex-workshop.latex.autoBuild.run": "onSave",
+    "latex-workshop.latex.autoBuild.interval": 3000,
+    "latex-workshop.view.pdf.viewer": "tab",
+    "latex-workshop.view.pdf.tab.autoFocused": false,
+    "latex-workshop.view.pdf.ref.viewer": "auto",
+
+    // ========== 正向/反向搜索 (SyncTeX) ==========
+
+    "latex-workshop.synctex.afterBuild.enabled": true,
+    "latex-workshop.synctex.path": "synctex",
+
+    // ========== 格式化 ==========
+
+    "latex-workshop.latexindent.path": "latexindent",
+    "latex-workshop.latexindent.args": [
+        "-l",
+        "-m",
+        "-w",
+        "%TMPFILE%",
+        "-y=defaultIndent:'  '"
+    ],
+
+    // ========== 通用设置 ==========
+
+    "latex-workshop.message.update.show": false,
+    "latex-workshop.message.information.show": false
 }

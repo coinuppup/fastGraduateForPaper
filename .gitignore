@@ -1,4 +1,7 @@
-# LaTeX build artifacts
+# LaTeX build directory (latexmk $aux_dir)
+build/
+
+# LaTeX build artifacts (fallback)
 *.aux
 *.bbl
 *.blg
@@ -16,10 +19,6 @@
 *.ist
 *.pdf
 *.bak
-
-# latexmk
-*.fdb_latexmk
-*.fls
 
 # OS files
 .DS_Store
