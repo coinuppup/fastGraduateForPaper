@@ -47,8 +47,8 @@
 
 \RequirePackage[algoruled,linesnumbered,algochapter]{algorithm2e}
 \SetAlCapSty{}
-\newcommand{\foocaption}[1]{ \def\@algocf@pre@plainruled{\hrule height1.5pt depth0pt\kern\interspacetitleruled #1 \kern\interspacealgoruled\hrule height1pt depth0pt\kern\interspacetitleruled} }
-\def\@algocf@post@ruled{\kern\interspacealgoruled\hrule height1.5pt\relax}%
+\setlength{\algoheightrule}{1.5pt}        % 算法顶线/底线 → 匹配表格 \heavyrulewidth
+\setlength{\algotitleheightrule}{1pt}    % 算法标题下线 → 匹配表格 \lightrulewidth
 
 \newcommand{\algoenname}{Algo.} %算法英文标题
 \newfloatlist[chapter]{algoen}{aen}{\listalgoenname}{\algoenname}
