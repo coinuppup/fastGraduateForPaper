@@ -4,23 +4,21 @@
 
 \section{引言}
 
-LPBF（Laser Powder Bed Fusion，激光粉末床熔融）技术是通过逐层熔化金属粉末实现复杂三维结构的直接成型，其中切片流程是将三维模型转换为能够直接加工的二维轮廓，是LPBF技术中的核心计算环节。在真实的生产环境中，包含大量低角度悬垂特征的三维模型的面片规模通常达到百万乃至千万级别，在此背景下，切片流程的处理效率直接影响整体制造过程的数据准备时间。目前，虽然有许多改进的切片算法处理方法，但是对于包含多个复杂特征的模型，现有的切片算法的处理效率仍然限制着LPBF技术的整体流程。因此，需要构建高效的切片算法框架。
-
-本章将围绕STL模型的拓扑重建和事件驱动的切片算法展开讨论。首先，在\ref{sec:topo}节中分析STL格式的拓扑缺失问题，并给出基于哈希去重的拓扑重建方案；接着，在\ref{sec:eds}节中提出事件驱动的切片算法框架，包含传统算法分析、事件驱动机制以及自适应切片策略；然后，在\ref{sec:exp}节中通过实验验证算法的有效性；最后，在\ref{sec:summary}节中对本章内容进行总结。
+LPBF技术是通过逐层熔化金属粉末实现复杂三维结构的直接成型，其中切片流程是将三维模型转换为能够直接加工的二维轮廓，是LPBF技术中的核心计算环节。在真实的生产环境中，包含大量低角度悬垂特征的三维模型的面片规模通常达到百万乃至千万级别，在此背景下，切片流程的处理效率直接影响整体制造过程的数据准备时间。目前，虽然有很多改进的切片算法处理方法，但是对于包含多个复杂特征的模型，现有的切片算法的处理效率仍然限制着LPBF技术的整体流程。因此，需要构建高效的切片算法框架。
 
 \section{STL模型拓扑重建方法}\label{sec:topo}
 
 \subsection{STL模型拓扑缺失分析}
 
-在前文章节中提到，传统的STL文件存储的是乱序的三角形面片和每一个三角形面片对应的法向向量，这种存储方式的存储颗粒度是面片，每个面片中的各个顶点都是独立保存的，这直接导致了STL文件的顶点冗余问题。当一个顶点被$n$个面片共用的时候，这个顶点的三维坐标在STL文件中将重复出现$n$次，且每次出现都与其他顶点无任何关联标记，在算法处理过程中只能够通过坐标$\left( x,y,z \right)$的数值相等来识别为同一个点。此外，对于边的识别，STL文件也不包含边的记录，实际处理过程只能通过对比构成边的两个点的坐标数值才能确定是否是同一条边。
+在前面2.2.1小节中提到，传统的STL文件存储的是乱序的三角形面片和每一个三角形面片对应的法向向量，这种存储方式的存储颗粒度是面片，每个面片中的各个顶点都是独立保存的，这直接导致了STL文件的顶点冗余问题。当一个顶点被$n$个面片共用的时候，这个顶点的三维坐标在STL文件中将重复出现$n$次，且每次出现都与其他顶点无任何关联标记，在算法处理过程中只能够通过坐标$\left( x,y,z \right)$的数值相等来识别为同一个点。此外，对于边的识别，STL文件也不包含边的记录，实际处理过程只能通过对比构成边的两个点的坐标数值才能确定是否是同一条边。
 
-在计算机图学中，任意一个闭合的多面体网格的顶点数$V$、拓扑边数$E$和面片数$F$遵循欧拉公式：
+在计算机图学中，任意一个闭合的多面体网格的顶点数$V$，拓扑边数$E$和面片数$F$遵循欧拉公式：
 
 \begin{equation}
 V-E+F=2 \label{eq:euler}
 \end{equation}
 
-在连续闭合的三角网格中，每一个三角面片由3条边构成，而每一条内部棱边必然恰好被2个相邻的面片所共享，拓扑边数$E$和面片数$F$二者的关系为：
+如图所示，在连续闭合的三角网格中，每一个三角面片由3条边构成，而每一条内部棱边必然恰好被2个相邻的面片所共享，拓扑边数$E$和面片数$F$二者的关系为：
 
 \begin{equation}
 3F=2E \label{eq:edge_face}
@@ -32,21 +30,21 @@ V-E+F=2 \label{eq:euler}
 V\approx \frac{1}{2}F \label{eq:vertex_face}
 \end{equation}
 
-而在STL格式下，文件写入的实际顶点数$V_{rel}$是$3F$，通过$V_{rel}/V$则可以发现，当模型面片的数量$F\to\infty$时，STL实际记录的点数量逼近了理论点数$V$最小值的6倍。这种共享顶点在文件中被重复记录，导致文件体积膨胀与读取时的重复内存分配，可以通过顶点坐标等值比较进行去重合并，将多次出现的同一几何顶点归并为单一顶点，从而解决存储开销的问题。
+而在STL格式下，文件写入的实际顶点数$V_{\mathrm{rel}}$是$3F$，通过$V_{\mathrm{rel}}/V$则可以发现，当模型面片的数量$F\to\infty$时，STL实际记录的点数量逼近了理论点数$V$最小值的6倍。这种共享顶点在文件中被重复记录，导致文件体积膨胀与读取时的重复内存分配，可以通过顶点坐标等值比较进行去重合并，将多次出现的同一几何顶点归并为单一顶点，从而解决存储开销的问题。
 
 此外，STL格式在拓扑关系的缺失对于切片效率影响更大。STL文件缺失显式的边记录和邻接关系，存储的面片与面片之间不存在任何的指针或引用关系。这种底层结构的简化，导致在整个切片处理周期内，算法系统均无法在局部时间复杂度下直接查询顶点或共用边的邻域从属关系。而在增材制造的切片降维求交阶段，水平切片平面与STL模型的布尔求交实际会退化为切片平面与成千上万离散的三角形面片的独立求交过程，求交的结果是海量的、无序的、孤立的二维线段几何。为了生成后续激光粉末熔融工艺所需要的完全闭合的边界，切片引擎必须通过全局搜索或者构建K-D树、哈希网格等空间索引，才能够将二维线段拓扑重构为首尾相接的二维切片轮廓。因此，必须在解析STL文件阶段预先重构三角形面片的显式拓扑连通关系。依托这种邻接信息，后续切片算法在确立初始交线后，就沿着共享边直接追踪至拓扑相邻面片，通过相邻面片的另外一个共享边求解出另外一个交点，从而依次完成这一层二维轮廓的完整构建。
 
 \subsection{基于哈希去重的拓扑结构设计}
 
-通过前文分析可以发现，STL模型所存在的拓扑缺失问题，本质上是因为STL是按照面片的层级去存储数据结构的。在这种存储方式下，每一个三角形面片均独立记录自身的三个顶点坐标，系统并不关心这些顶点是否已经在其他面片中出现过。因此，同一个几何顶点会随着相邻面片数量的增加而被重复存储多次。而从拓扑学的角度看，顶点是构成网格连通关系的最基本元素，如果无法建立统一的顶点编号体系，那么后续边的标识、邻接关系的构建以及切片轮廓的追踪都无法进行。因此，在拓扑重建过程中，首先要解决的问题就是重复顶点的合并问题。
+通过前文分析可以发现，STL模型所存在的拓扑缺失问题，本质上是因为STL是按照面片的层级去存储数据结构的。在这种存储方式下，每一个三角形面片均独立记录自身的三个顶点坐标，系统并不关心这些顶点是否已经在其它面片中出现过。因此，同一个几何顶点会随着相邻面片数量的增加而被重复存储多次。而从拓扑学的角度看，顶点是构成网格连通关系的最基本元素，如果无法建立统一的顶点编号体系，那么后续边的标识、邻接关系的构建以及切片轮廓的追踪都无法进行。因此，在拓扑重建过程中，首先要解决的问题就是重复顶点的合并问题。
 
-针对这个问题，最直接的解决方案就是采用顺序比较方法，当每次读取顶点坐标，将该顶点与全局顶点库中已存储的所有顶点逐一进行坐标数值比对，如果检测到完全一致的顶点，则判定为同一物理几何顶点，不再重复新建顶点数据，否则创建新的顶点记录，但是这种方法的效率比较低。设模型实际包含的唯一顶点数为$V$，STL文件记录的顶点数为$V_{rel}$，那么在最坏的情况下，第$i$个顶点需要与前面已经建立好的$i-1$个顶点进行比较，因此整体的比较次数$\mathrm{totalcount}$为：
+针对这个问题，最直接的解决方案就是采用顺序比较方法，当每次读取顶点坐标，将该顶点与全局顶点库中已存储的所有顶点逐一进行坐标数值比对，如果检测到完全一致的顶点，则判定为同一物理几何顶点，不再重复新建顶点数据，否则创建新的顶点记录，但是这种方法的效率比较低。设模型实际包含的唯一顶点数为$V$，STL文件记录的顶点数为$V_{\mathrm{rel}}$，那么在最坏的情况下，第$i$个顶点需要与前面已经建立好的$i-1$个顶点进行比较，因此整体的比较次数$\mathrm{totalcount}$为：
 
 \begin{equation}
 \mathrm{totalcount}=\sum_{i=1}^{V_{\mathrm{rel}}}(i-1)=\frac{V_{\mathrm{rel}}(V_{\mathrm{rel}}-1)}{2} \label{eq:totalcount}
 \end{equation}
 
-整体的时间复杂度为$O(V_{rel}^{2})$。对于包含了多个悬垂特征的复杂模型而言，面片的数量往往达到百万级别，顶点的比较次数将达到$10^{12}$的数量级别，此时，按照顺序搜索将成为整个预处理阶段最主要的时间耗时。
+整体的时间复杂度为$O(V_{\mathrm{rel}}^{2})$。对于包含了多个悬垂特征的复杂模型而言，面片的数量往往达到百万级别，顶点的比较次数将达到$10^{12}$的数量级别，此时，按照顺序搜索将成为整个预处理阶段最主要的时间耗时。
 
 本文采用哈希映射机制来构建顶点索引列表，将原本全局遍历的搜索转换为局部哈希查找的过程，对于任意的顶点，通过哈希索引就可以快速定位到对应的存储位置，将平均查找时间复杂度降为$O(1)$。但是，在实际的工程应用中，顶点哈希的构建不能够直接使用STL文件中的原始三维浮点坐标$(v_{x},v_{y},v_{z})$作为哈希键进行等值比较，否则会受到计算机底层浮点数表示误差的影响。二进制是无法精确表达大多浮点小数的，几何意义上完全重合的两个顶点，在经过多次模型转换、布尔运算或CAD导出之后，其底层数值往往会产生微小偏差。比如(\num{10.0000000}, \num{5.0000000}, \num{2.0000000})和(\num{9.9999998}, \num{5.0000001}, \num{2.0000000})在实际几何空间上可以认为是同一个顶点，但是由于浮点表达的误差，如果直接将其参与哈希计算，则可能被映射到不同的哈希桶中，被错误地判定为两个独立顶点，导致顶点拓扑流程失效。所以在本方法中，按照式\eqref{eq:tolerance}完成等值判定，其中$(v_{x},v_{y},v_{z})$为当前提取的顶点坐标，而$(u_{x},u_{y},u_{z})$则为候选的顶点坐标，$\varepsilon=\num{1e-6}$为全局的容差阈值。
 
@@ -70,7 +68,7 @@ Q_z=\left\lfloor z\cdot 10^3+0.5\right\rfloor.
 \end{cases} \label{eq:quantize}
 \end{equation}
 
-STL文件的默认单位为$\mathrm{mm}$，上述操作实际就把STL文件的精度放大了\num{1000}倍，使得底层哈希键能够识别到的最大精度精确到1微米。而在增材制造领域里，LPBF技术工艺的粉末层厚度通常为20到\num{50}微米，激光的光斑直径是50到\num{100}微米，而1微米的网格切分尺度是远低于LPBF技术要求的最小工艺特征的。在量化之后，紧接着通过位移与异或操作生成全局的哈希索引$h$，其推演关系如下：
+STL文件的默认单位为$\mathrm{mm}$，上述操作实际就把STL文件的精度放大了\num{1000}倍，使得底层哈希键能够识别到的最大精度精确到1微米。而在增材制造领域里，LPBF技术工艺的粉末层厚度通常为20到\num{50}微米，激光的光斑直径是50到\num{100}微米，而1微米的网格切分尺度是远低于LPBF技术要求的最小工艺特征的。在量化之后，紧接着通过位移与异或操作生成全局的哈希索引$h$（式中$\ll$表示按位左移，$\oplus$表示按位异或），其推演关系如下：
 
 \begin{equation}
 h=H(Q_{x})\oplus H(Q_{y})\ll 1\oplus H(Q_{z})\ll 2 \label{eq:hash}
@@ -78,15 +76,15 @@ h=H(Q_{x})\oplus H(Q_{y})\ll 1\oplus H(Q_{z})\ll 2 \label{eq:hash}
 
 当通过哈希索引$h$定位到对应的哈希桶之后，通过按照式\eqref{eq:tolerance}完成精确的等值判定，如果哈希表中不存在对应记录，则说明该顶点首次出现，为其分配新的全局顶点编号$i$，否则复用已有的顶点索引。
 
-在完成顶点唯一化之后，原始STL模型中顶点被统一映射到全局的顶点集合$V$中，此时任意一个三角形面片可以表示为$f_{k}=(I_{v0},I_{v1},I_{v2})$，其中$I_{v0}$、$I_{v1}$、$I_{v2}$分别表示三个顶点在$V$中的全局索引编号，且每个面片天然包含三条边$(I_{v0},I_{v1})$、$(I_{v1},I_{v2})$、$(I_{v2},I_{v0})$。为消除边的方向歧义、构建统一无向边检索标准，每一条边根据式\eqref{eq:edge_norm}对两端顶点索引数值进行升序标准化处理：
+在完成顶点唯一化之后，原始STL模型中顶点被统一映射到全局的顶点集合$V$中，如图所示，此时任意一个三角形面片可以表示为$f_{k}=(I_{v0},I_{v1},I_{v2})$，其中$I_{v0}$、$I_{v1}$、$I_{v2}$分别表示三个顶点在$V$中的全局索引编号，且每个面片天然包含三条边$(I_{v0},I_{v1})$、$(I_{v1},I_{v2})$、$(I_{v2},I_{v0})$。为消除边的方向歧义、构建统一无向边检索标准，每一条边根据式\eqref{eq:edge_norm}对两端顶点索引数值进行升序标准化处理：
 
 \begin{equation}
 \kappa=(\min(u,v),\max(u,v)) \label{eq:edge_norm}
 \end{equation}
 
-按照这种方式，两个三角形面片$f_{k}=(I_{v0},I_{v1},I_{v2})$和$f_{m}=(I_{v0},I_{v2},I_{v4})$共享顶点$I_{v0}$和$I_{v2}$，面片$f_{1}$原生有向边为$(v_{1},v_{2})$，面片$f_{2}$的原生有向边为$(v_{2},v_{1})$，二者经过式\eqref{eq:edge_norm}统一排序之后，共享边在整个模型中映射到唯一的键值$\kappa=(I_{v0},I_{v2})$。对于每一组标准化无向顶点对$\kappa=(u,v)$，构建映射记录点对边、边对邻接面片的邻接关系$(u,v)\to(j,p_{e},q_{e})$，其中$j$表示边的全局编号，$p_{e}$、$q_{e}$分别表示为这一条边的两个共享面片，$u$、$v$则表示组成这条边两个顶点的全局索引。如果在解析阶段映射元组内只有一个有效面片的索引，则这一条边为模型的边界面，如果$p_{e}$和$q_{e}$均为有效面片编号，则这一条边为网格内部的共享边。同理，每个面片可以建立两层映射关系，一层$f_{k}\to(I_{v0},I_{v1},I_{v2})$，代表面片到三个顶点的映射关系，其中$I_{v0}$、$I_{v1}$、$I_{v2}$为组成面片的三个全局顶点的索引，其中$k$为当前面片的全局唯一编号；另外一层则是$f_{k}\to(I_{e0},I_{e1},I_{e2})$，代表面片到三条边的映射关系，其中$I_{e0}$、$I_{e1}$、$I_{e2}$为组成面片三条边的几何边索引。
+按照这种方式，如图所示，两个三角形面片$f_{k}=(I_{v0},I_{v1},I_{v2})$和$f_{m}=(I_{v0},I_{v2},I_{v4})$共享顶点$I_{v0}$和$I_{v2}$，面片$f_{1}$原生有向边为$(v_{1},v_{2})$，面片$f_{2}$的原生有向边为$(v_{2},v_{1})$，二者经过式\eqref{eq:edge_norm}统一排序之后，共享边在整个模型中映射到唯一的键值$\kappa=(I_{v0},I_{v2})$。对于每一组标准化无向顶点对$\kappa=(u,v)$，构建映射记录点对边、边对邻接面片的邻接关系$(u,v)\to(j,p_{e},q_{e})$，其中$j$表示边的全局编号，$p_{e}$、$q_{e}$分别表示为这一条边的两个共享面片，$u$、$v$则表示组成这条边两个顶点的全局索引。如果在解析阶段映射元组内只有一个有效面片的索引，则这一条边为模型的边界面，如果$p_{e}$和$q_{e}$均为有效面片编号，则这一条边为网格内部的共享边。同理，每个面片可以建立两层映射关系，一层$f_{k}\to(I_{v0},I_{v1},I_{v2})$，代表面片到三个顶点的映射关系，其中$I_{v0}$、$I_{v1}$、$I_{v2}$为组成面片的三个全局顶点的索引，其中$k$为当前面片的全局唯一编号；另外一层则是$f_{k}\to(I_{e0},I_{e1},I_{e2})$，代表面片到三条边的映射关系，其中$I_{e0}$、$I_{e1}$、$I_{e2}$为组成面片三条边的几何边索引。
 
-依托这两层映射关系，如果已知面片$f_{k}$绑定了三条全局边索引$I_{e0}$、$I_{e1}$、$I_{e2}$，则对于面内的任意一个全局边的索引$j\in\{I_{e0},I_{e1},I_{e2}\}$，都可以追溯查找出生成这条无向边的顶点对$\kappa=(u,v)$。代入对应的映射记录$\kappa\to(j,p_{e},q_{e})$，就可以直接获取这条边的两个邻接面片的索引$p_{e}$和$q_{e}$。由于这条边属于当前面片$f_{k}$，所以$p_{e}$和$q_{e}$中必然有一个数值等于当前面片的全局唯一编号$k$，排除掉当前面片的自身索引$k$之后，另外一个有效的邻接面片索引就是相邻面片的索引。遍历面片$f_{k}$全部三条边并收集各自对应的邻接面片索引，汇总每个面片的邻接面片集合：
+依托这两层映射关系，如果已知面片$f_{k}$绑定了三条全局边索引$I_{e0}$、$I_{e1}$、$I_{e2}$，则对于面内的任意一个全局边的索引$j\in\{I_{e0},I_{e1},I_{e2}\}$，都可以追溯查找到生成这条无向边的顶点对$\kappa=(u,v)$。代入对应的映射记录$\kappa\to(j,p_{e},q_{e})$，就可以直接获取这条边的两个邻接面片的索引$p_{e}$和$q_{e}$。由于这条边属于当前面片$f_{k}$，所以$p_{e}$和$q_{e}$中必然有一个数值等于当前面片的全局唯一编号$k$，排除掉当前面片的自身索引$k$之后，另外一个有效的邻接面片索引就是相邻面片的索引。遍历面片$f_{k}$全部三条边并收集各自对应的邻接面片索引，汇总每个面片的邻接面片集合：
 
 \begin{equation}
 \bm{N}(f_{k})=\{I_{n0},I_{n1},I_{n2}\} \label{eq:neighbor}
@@ -94,263 +92,296 @@ h=H(Q_{x})\oplus H(Q_{y})\ll 1\oplus H(Q_{z})\ll 2 \label{eq:hash}
 
 且满足$\left|\bm{N}(f_k)\right|\le 3$。
 
-结合上述映射关系，最终构建双向拓扑通路：一方面，面片可以通过内置的索引实现面片到点、面片到边的正向读取；而凭借着无向边，则可以实现边到邻接面片的索引，构建面片到边、边到邻接面片的链式双向索引。表\ref{tab:topo_storage}给出了拓扑重建前后各数据结构的存储开销对比。
-
-\begin{table}[htbp]
-\caption{拓扑重建前后存储开销对比}
-\label{tab:topo_storage}
-\vspace{0.5em}\centering\wuhao
-\begin{tabular}{cccc}
-\toprule
-数据结构 & 原始STL文件 & 拓扑重建后 & 压缩比 \\
-\midrule
-顶点数 & $3F$ & $V\approx F/2$ & $\approx 6:1$ \\
-边数   & 无显式记录 & $E\approx 3F/2$ & --- \\
-面片数 & $F$ & $F$ & $1:1$ \\
-邻接信息 & 无 & 每面片3邻接索引 & --- \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\section{事件驱动切片算法设计}\label{sec:eds}
-
-\subsection{传统切片算法分析}
-
-传统的切片算法按照其实现原理可以分为两大类：基于面片交线重构的方法和基于层间连续性追踪的方法。
-
-基于面片交线重构的方法的基本思路是：对于每一层切片平面$z=z_k$，遍历模型中所有的三角面片，检测每个面片与该切片平面的相交关系。对于每一个与切片平面相交的三角面片$f_i$，计算其与平面$z=z_k$的交线段，并将该线段按照端点拓扑邻接关系连接成闭合的二维轮廓。这种方法的优点是实现简单、鲁棒性较好，但其缺点也十分明显。假设模型包含的面片数为$F$，总的切片层数为$L$，则该方法需要对所有面片执行$L$次遍历，整体计算复杂度为$O(F\cdot L)$。对于一个包含千万级面片的模型，当切片层数达到数千层时，计算开销将不可接受。
-
-基于层间连续性追踪的方法充分利用了相邻切片层之间的几何相似性。这种方法首先通过某种策略（如基于面片分组或增量式更新）确定每一层切片的初始种子面片，然后沿着拓扑邻接关系依次追踪所有与当前切片平面相交的面片，从而避免了对所有面片的全局遍历。这种方法能够将切片复杂度降低至接近$O(F)$级别，但其性能高度依赖于初始种子面片的选取策略以及拓扑邻接关系的完整性。
-
-\subsection{事件驱动切片机制}
-
-本文提出的切片算法采用事件驱动架构，将模型切片过程抽象为一组异步事件的生成与处理流程。整个事件驱动切片系统由三个核心组件构成：事件生成器、事件优先级队列和事件处理器，如图\ref{fig:event_arch}所示。
+结合上述映射关系，最终构建双向拓扑通路：一方面，面片可以通过内置的索引实现面片到点、面片到边的正向读取；而凭借着无向边，则可以实现边到邻接面片的索引，构建面片到边、边到邻接面片的链式双向索引。
 
 \begin{figure}[htbp]
 \centering
-% TODO: 替换为实际架构图文件
-% \includegraphics[width=0.85\textwidth]{event_arch}
-\caption{事件驱动切片架构图}
-\label{fig:event_arch}
+% TODO: 替换为实际图片
+% \includegraphics[width=0.85\textwidth]{topo_shared_edge}
+\caption{共享边形成面片的连接关系示意图}
+\label{fig:topo_shared_edge}
 \end{figure}
 
-\subsubsection{事件模型定义}
+\subsection{STL文件解析和拓扑构建流程}
 
-在事件驱动切片框架下，每一个与切片平面相交的三角面片被视为一个独立的切片事件。形式化地，一个切片事件$e$定义为一个五元组：
-
-\begin{equation}
-e=(f_k, z_{\min}, z_{\max}, \theta, \mathrm{status}) \label{eq:event_def}
-\end{equation}
-
-其中，$f_k$为面片在拓扑结构中的全局索引；$z_{\min}=\min(v_{0z},v_{1z},v_{2z})$和$z_{\max}=\max(v_{0z},v_{1z},v_{2z})$分别表示该三角面片在$Z$轴方向上的最小和最大投影范围，也是判断面片区间范围的核心参数；$\theta$为面片法向量与水平面的夹角，用于后续自适应层厚调节；$\mathrm{status}\in\{\mathrm{pending},\mathrm{active},\mathrm{done}\}$表示该事件的当前处理状态。
-
-\subsubsection{事件生成与优先级排序}
-
-事件生成阶段在STL文件解析完成并建立拓扑结构之后执行。遍历拓扑结构中的每一个三角面片$f_k$，依据其顶点坐标计算$z_{\min}$和$z_{\max}$，生成初始事件$e_k$并插入事件优先级队列$Q$。事件优先级的排序准则为：首先按照$z_{\min}$升序排列；当$z_{\min}$相同时，按照$z_{\max}$降序排列；若二者均相同，则按照$\theta$升序排列。该排序策略保证了切片算法能够按照从低到高的顺序依次处理每一层切片平面，同时将跨度较大的面片优先处理，以减少事件的重复激活次数。
-
-\subsubsection{事件处理流程}
-
-事件处理器按照以下步骤循环执行切片计算，其处理流程如算法\ref{alg:eds}所示。
-
-\begin{algorithm}[htbp]
-\caption{事件驱动切片主循环}
-\label{alg:eds}
-\KwIn{拓扑重建后的网格数据$M$，总切片层数$L$，层厚$\Delta z$}
-\KwOut{全部层的切片轮廓集合$\bm{C}$}
-初始化事件优先级队列$Q\leftarrow\emptyset$\;
-初始化当前层索引$l\leftarrow 0$\;
-初始化切片轮廓集合$\bm{C}\leftarrow\emptyset$\;
-
-\ForEach{面片$f_k\in M$}{
-  计算$z_{\min}(f_k)$，$z_{\max}(f_k)$，$\theta(f_k)$\;
-  创建事件$e_k\leftarrow(f_k,z_{\min},z_{\max},\theta,\mathrm{pending})$\;
-  将$e_k$插入优先级队列$Q$\;
-}
-
-\While{$Q\neq\emptyset$且$l<L$}{
-  当前切片平面$z_l\leftarrow l\cdot\Delta z$\;
-  激活事件集合$A\leftarrow\{e\in Q\mid z_{\min}(e)\le z_l\le z_{\max}(e)\}$\;
-
-  \ForEach{事件$e\in A$}{
-    计算面片$f_k$与平面$z=z_l$的交线段$s$\;
-    将$s$插入当前层的线段集合$S_l$\;
-    \If{$z_{\max}(e)\le z_l$}{
-      将$e$的状态标记为$\mathrm{done}$，从$Q$中移除\;
-    }
-  }
-
-  调用轮廓重构子程序$\mathrm{ReconstructContours}(S_l)$，生成本层二维轮廓$C_l$\;
-  将$C_l$添加至轮廓集合$\bm{C}$\;
-  $l\leftarrow l+1$\;
-}
-\Return{$\bm{C}$}\;
-\end{algorithm}
-
-轮廓重构子程序负责将每一层中无序的二维交线段组装成首尾相连的闭合轮廓，其详细步骤如算法\ref{alg:reconstruct}所示。
-
-\begin{algorithm}[htbp]
-\caption{轮廓重构子程序}
-\label{alg:reconstruct}
-\KwIn{当前层无序线段集合$S_l$，拓扑邻接信息$\bm{N}$}
-\KwOut{闭合二维轮廓集合$\bm{R}_l$}
-初始化轮廓集合$\bm{R}_l\leftarrow\emptyset$\;
-初始化访问标记数组$\mathrm{visited}[1\ldots|S_l|]\leftarrow\{\mathrm{false}\}$\;
-
-\ForEach{线段$s_i\in S_l$，其中$\mathrm{visited}[i]=\mathrm{false}$}{
-  创建新轮廓$r\leftarrow[]$\;
-  当前线段$\mathrm{curr}\leftarrow s_i$\;
-  $\mathrm{visited}[i]\leftarrow\mathrm{true}$\;
-  将$\mathrm{curr}$的起点添加至$r$\;
-
-  \Repeat{当前线段$\mathrm{curr}$的终点与$r$的起点重合}{
-    通过拓扑邻接信息$\bm{N}$查找与$\mathrm{curr}$的终点相连的下一线段$s_j$\;
-    \If{未找到$s_j$或$\mathrm{visited}[j]=\mathrm{true}$}{
-      \textbf{break}\;
-    }
-    $\mathrm{visited}[j]\leftarrow\mathrm{true}$\;
-    将$s_j$的起点添加至$r$\;
-    $\mathrm{curr}\leftarrow s_j$\;
-  }
-
-  \If{$|r|\ge 3$}{
-    将闭合轮廓$r$添加至$\bm{R}_l$\;
-  }
-}
-\Return{$\bm{R}_l$}\;
-\end{algorithm}
-
-\subsection{自适应切片策略}
-
-自适应切片策略的核心思想是根据模型局部几何特征的复杂程度动态调节层厚。在几何特征变化剧烈的区域（如高曲率曲面、悬垂结构、薄壁特征等），采用较小的层厚以保证成型精度；在几何特征平缓的区域（如垂直平面、大面积平面等），采用较大的层厚以提高加工效率。
-
-对于每个三角面片$f_k$，定义其几何复杂度指标$\theta(f_k)$为面片法向量$\bm{n}_k$与$Z$轴正方向单位向量$\bm{e}_z=(0,0,1)$的夹角：
-
-\begin{equation}
-\theta(f_k)=\arccos\left(\frac{\left|\bm{n}_k\cdot\bm{e}_z\right|}{\left\|\bm{n}_k\right\|\cdot\left\|\bm{e}_z\right\|}\right) \label{eq:theta_def}
-\end{equation}
-
-$\theta(f_k)$的取值范围为$[0,\pi/2]$。当$\theta\to 0$时，面片近似水平（平行于打印平面），此时对层厚最为敏感，应当采用最小层厚$\Delta z_{\min}$；当$\theta\to\pi/2$时，面片近似竖直（垂直于打印平面），此时可采用最大层厚$\Delta z_{\max}$以提高加工效率。基于此，定义层厚函数为：
-
-\begin{equation}
-\Delta z(\theta)=\Delta z_{\min}+\left(\Delta z_{\max}-\Delta z_{\min}\right)\cdot\sin\theta \label{eq:adaptive_dz}
-\end{equation}
-
-其中，$\Delta z_{\min}$为最小允许层厚，由LPBF设备的粉末铺展能力和激光穿透深度决定，典型值为\num{20}微米；$\Delta z_{\max}$为最大允许层厚，由熔池稳定性和层间结合强度决定，典型值为\num{50}微米。
-
-在实际切片过程中，对于每一层切片平面$z_l$处，首先收集所有与该平面相交的面片，计算这些面片的$\theta$值的加权平均值$\bar{\theta}_l$，然后根据式\eqref{eq:adaptive_dz}计算该切片层的实际层厚$\Delta z_l$。同时，为确保相邻层之间的层厚过渡平滑，引入层厚变化率约束：
-
-\begin{equation}
-\left|\Delta z_l-\Delta z_{l-1}\right|\le\delta_{\max} \label{eq:dz_constraint}
-\end{equation}
-
-其中，$\delta_{\max}$为相邻层之间允许的最大层厚变化量，本文取$\delta_{\max}=\num{5}$微米。
-
-表\ref{tab:dz_config}给出了不同几何特征区域对应的推荐层厚配置参数。
-
-\begin{table}[htbp]
-\caption{不同几何特征区域的推荐层厚配置}
-\label{tab:dz_config}
-\vspace{0.5em}\centering\wuhao
-\begin{tabular}{cccc}
-\toprule
-几何特征类型 & $\theta$范围 & 推荐层厚（$\mu\mathrm{m}$） & 适用场景 \\
-\midrule
-悬垂结构   & $[0,\pi/6)$ & 20$\sim$30 & 低角度区域，需精细分层 \\
-曲面过渡区 & $[\pi/6,\pi/3)$ & 30$\sim$40 & 中等复杂度区域 \\
-垂直平面   & $[\pi/3,\pi/2]$ & 40$\sim$50 & 高角度或竖直区域 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\section{实验与分析}\label{sec:exp}
-
-为验证本章提出的拓扑重建方法和事件驱动切片算法的有效性，本节分别从拓扑重建效率、切片算法性能以及自适应切片策略三个维度设计对比实验。实验平台配置如下：CPU为Intel Core i7-\num{13700}K，内存为\num{64}GB DDR5，操作系统为Windows 11，所有算法均采用C++实现并使用MSVC 2022编译器以O2优化等级编译。
-
-\subsection{拓扑重建效率实验}
-
-本实验选取了6个具有不同复杂度的标准STL测试模型，其面片规模从\num{10000}到\num{5000000}不等，涵盖了从简单几何体到复杂工业零件的范围。表\ref{tab:topo_benchmark}列出了各测试模型的详细参数以及拓扑重建的时间开销。
-
-\begin{table}[htbp]
-\caption{不同规模模型的拓扑重建时间对比}
-\label{tab:topo_benchmark}
-\vspace{0.5em}\centering\wuhao
-\begin{tabular}{ccccc}
-\toprule
-模型名称 & 面片数$F$ & 理论顶点数$V$ & 重建顶点数 & 拓扑重建时间（ms） \\
-\midrule
-Bunny       & \num{69451}  & \num{35947}  & \num{34834}  & \num{12.4} \\
-Dragon      & \num{871414} & \num{437645} & \num{435628} & \num{156.7} \\
-Armadillo   & \num{345944} & \num{172974} & \num{172966} & \num{61.2} \\
-Propeller   & \num{1517694}& \num{759120} & \num{758851} & \num{278.3} \\
-Turbine     & \num{3632450}& \num{1816230}& \num{1816218}& \num{682.5} \\
-EngineBlock & \num{5000000}& \num{2500000}& \num{2499987}& \num{937.8} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-从表\ref{tab:topo_benchmark}的实验结果可以看出，基于哈希去重的拓扑重建方法的处理时间与模型面片数基本呈线性关系。对于包含\num{5000000}万面片的大型模型，拓扑重建时间在\num{937.8}ms以内，重建后的顶点数与理论值极为接近，验证了哈希去重机制的有效性。注意到重建顶点数略低于理论顶点数，这是由于实际STL模型为开放网格或包含非流形边，导致欧拉公式的条件不完全满足。
-
-\subsection{切片算法性能实验}
-
-为对比本章提出的事件驱动切片算法与传统算法的性能差异，分别实现了以下三种切片算法并在相同条件下进行测试：
+前文\ref{sec:topo}节已经完成了拓扑数据结构设计以及顶点去重、共享边构建等关键机制的定义。对STL文件的拓扑重建的总体流程如图\ref{fig:topo_flow}所示，关键子算法如图\ref{fig:topo_sub_algo}(a)和图\ref{fig:topo_sub_algo}(b)所示，具体的算法步骤如下：
 
 \begin{enumerate}
-\item 全量遍历算法：对每一切片层遍历全部面片进行求交计算；
-\item 基于分组索引的算法：将面片按$z$轴区间分组，每层仅处理可能相交的分组；
-\item 本文提出的事件驱动算法（含拓扑重建预处理）。
+\item 读取STL文件头部信息，识别ASCII格式或Binary格式，并完成拓扑数据结构初始化及存储空间预分配。
+\item 对于当前读取的三角形面片，依次处理三个顶点坐标。通过图\ref{fig:topo_sub_algo}(a)所示的顶点唯一化算法，将原始坐标映射为全局顶点索引，并获得当前面片对应的三个顶点编号。
+\item 根据面片三个顶点索引生成三条边，并利用图\ref{fig:topo_sub_algo}(b)所示算法完成边对象创建及共享边识别，同时建立边与面片之间的关联关系。
+\item 当三条边处理完成后，生成当前面片记录，并保存顶点索引、边索引以及法向量等信息。
+\item 利用当前面片顶点坐标更新模型空间边界范围。
+\item 全部面片解析结束后，根据共享边记录补充面片邻接信息，建立完整拓扑连接关系。
+\item 输出顶点集合$V$、边集合$E$、面片集合$F$以及模型包围盒，完成STL模型拓扑重建。
 \end{enumerate}
 
-表\ref{tab:slice_benchmark}给出了三种算法在不同模型上的切片总耗时（含拓扑重建时间，单位为秒），切片层厚统一设置为\num{30}微米。
+\begin{figure}[htbp]
+\centering
+% TODO: 替换为实际图片
+% \includegraphics[width=0.85\textwidth]{topo_flow}
+\caption{STL模型拓扑重建的总体流程图}
+\label{fig:topo_flow}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+% TODO: 替换为实际图片（两幅子图）
+% \begin{subfigure}{0.48\textwidth}
+% \includegraphics[width=\textwidth]{topo_vertex_unique}
+% \caption{算法B：顶点唯一化流程}
+% \end{subfigure}
+% \begin{subfigure}{0.48\textwidth}
+% \includegraphics[width=\textwidth]{topo_shared_edge_detect}
+% \caption{算法C：共享边的检测流程}
+% \end{subfigure}
+\caption{STL模型拓扑重建的子算法流程}
+\label{fig:topo_sub_algo}
+\end{figure}
+
+\section{切片平面与面片的相交检测关系的构建}\label{sec:eds}
+
+在计算当前切片层与相交面片的相交点前，要先判断当前平面是否与当前面片是否相交。如果是在执行的过程中，让每一层的切片面片都去判断当前层与所有的面片是相交之后，然后再求交点，这种暴力计算方法的效率往往不够高效。以一个面片数量为$K$，切片层数为$L$的模型为例，按照上述方法，算法的计算时间复杂度为$O(KL)$。随着模型面片数量和切片层数的增加，整体计算时间将呈现近似线性增长，在大规模模型中将导致不可接受的计算开销。
+
+本文提出一种事件驱动扫掠方法，将面片的插入操作转化为进入和离开两个事件，在逐层推进中仅维护当前活跃的面片集合，每个面片只标记一次进入和一次离开，事件总量与层数无关。
+
+\subsection{相交关系的判定与候选面片快速筛选}
+
+对于绝大多数面片来说，一个三角形面片只与部分的切片平面相交，所以如果能够在求交之前，快速筛选出与当前层相交的面片集合，就可以降低整体切片算法的时间复杂度。已知模型的包围盒为$(x_{\min},x_{\max},y_{\min},y_{\max},z_{\min},z_{\max})$，可直接得出模型的总体高度为$h=z_{\max}-z_{\min}$。设单层的切片层厚为$\Delta h$，模型总切片层数$L$可以通过式\eqref{eq:layer_count}求得：
+
+\begin{equation}
+L=\frac{h}{\Delta h}+1 \label{eq:layer_count}
+\end{equation}
+
+如图所示，在前面几何解析阶段读取某一个三角形面片$f_{k}$时，其三个顶点的$Z$坐标已经按照数值升序排布，分别记做$z_{k\min}$、$z_{k\mathrm{mid}}$、$z_{k\max}$。这个三角面片的有效切片高度区间被限定在$[z_{k\min},z_{k\max}]$内。为了将这一连续的物理高度空间映射为离散的切片层级，需要进一步换算出该面片首尾触碰的起始层号$L_{k\mathrm{start}}$和终点层号$L_{k\mathrm{end}}$。考虑到计算机底层浮点数运算存在边界截断误差，当面片顶点极度贴近切片平面时，极易出现层号归属遗漏问题，导致后续切片出现飞线问题，在进行映射计算时，引入一个微小的浮点误差值$\varepsilon_{\tau}$进行微调，本课题中取值为$\num{1e-5}\,\mathrm{mm}$。结合模型的最低点坐标高为$z_{\min}$，包含误差补偿的层级序号求解逻辑如式\eqref{eq:layer_range}所示：
+
+\begin{equation}
+\begin{cases}
+L_{k\mathrm{start}}=\dfrac{z_{k\min}-z_{\min}-\varepsilon_\tau}{\Delta h},\\[12pt]
+L_{k\mathrm{end}}=\dfrac{z_{k\max}-z_{\min}-\varepsilon_\tau}{\Delta h}.
+\end{cases} \label{eq:layer_range}
+\end{equation}
+
+求出确切的层级跨度后，把当前面片的全局索引值$k$依次放入第$L_{k\mathrm{start}}$到第$L_{k\mathrm{end}}$的切片层集合中。面片在$Z$方向的跨度通常覆盖十至数百层，同一个面片需要被放入多个层，总的插入次数$N_{\mathrm{total}}$会随着模型的规模增长而显著增大，数据结构的选择直接影响整体的性能。
+
+本节以面片的$Z$向包围盒$[z_{k\min},z_{k\max}]$和式\eqref{eq:layer_range}求得的层号为依据，按照如图所示的情况，执行三步快速筛选。
+
+\begin{enumerate}
+\item 第一步剔除模型的外部面片。如果$z_{k\max}<z_{\min}-\varepsilon_{\tau}$，该面片位于模型包围盒的下方，不与任何切片相交；如果$z_{k\min}>z_{\max}+\varepsilon_{\tau}$，该面片位于所有切片层的上方。上述两种情况的面片都是模型外部的面片，直接剔除。
+
+\item 第二步，筛选出水平平面。当$\left|z_{k,\max}-z_{k,\min}\right|\le\varepsilon_{\tau}$时该面片在$Z$方向上近似退化，其与切片平面仅可能存在共面情形，不影响非共面层的相交检测，在此阶段予以剔除。
+
+\item 第三步校正层号边界。浮点数运算的截断误差可能导致边界层号微小偏移，须对通过前两步的面片执行校正：
+
+\begin{equation}
+L_{k\mathrm{start}}'=
+\begin{cases}
+L_{k\mathrm{start}}+1, & L_{k\mathrm{start}}>0\ \text{且}\ z_{k\min}>Z_{L_{k\mathrm{start}}}+\varepsilon_{\tau},\\[6pt]
+L_{k\mathrm{start}}, & \text{else}.
+\end{cases} \label{eq:layer_correction}
+\end{equation}
+\end{enumerate}
+
+经处理后，每个有效面片获得连续的候选层范围$[L_{k\mathrm{start}}',L_{k\mathrm{end}}]$，该面片仅可能与该范围内的切片层存在相交关联。
+
+\subsection{基于事件驱动扫掠的相交集合构建算法}
+
+获得各面片的候选层范围后，本文提出一种事件驱动扫掠算法来快速构建各层的活跃面片集。算法\ref{alg:sweep}给出了事件驱动扫掠的完整流程。每个面片在其候选层范围的起始位置产生一个进入事件，在结束位置的下一层产生一个离开事件，通过维护一个动态更新的活跃面片列表，在逐层推进中仅处理当前活跃的面片。
+
+事件桶就绪后，算法自底向上逐层扫掠。算法维护三个并行数据结构，活跃状态标记数组$\alpha_{k}$记录每个面片当前是否活跃，初始值为0表示非活跃；活跃面片列表$A$以动态数组形式存储当前全部活跃面片的索引，支持常数时间的尾部追加；位置索引数组$\pi$记录每个活跃面片在$A$中的具体位置。
+
+对第$l$层，扫掠过程分为两个阶段。第一阶段处理进入事件，如果当前面片尚未标记为激活则标记为活跃，记录其在列表中的位置，并且追加到列表的尾部中。第二阶段处理离开事件，如果面片仍处于活跃状态则将其移除。删除操作的时候，首先将待移除面片与列表末尾面片交换位置，更新被交换面片的位置索引，然后才弹出尾部元素。
+
+上述两个步骤执行完成之后，$A$中存储第$l$层完整活跃面片集合。整个扫掠过程中每个面片只被处理两次，一次进入、一次离开。设第$l$层活跃面片集合大小为$|A_{l}|$，算法总时间复杂度为$O(K+L+\sum|A_{l}|)$。实际模型中单个面片的$Z$向跨度远小于模型总高，$|A_{l}|\ll K$恒成立，均匀网格下时间复杂度接近$O(K+L)$。
+
+\begin{algorithm}[htbp]
+\caption{基于事件驱动扫掠的相交集合构建算法}
+\label{alg:sweep}
+\KwIn{面片集合$F$，切片层数$L$，各面片候选层范围$[L_{k\mathrm{start}}',L_{k\mathrm{end}}]$}
+\KwOut{各层的活跃面片集$A_{l}$，$l=0,\ldots,L-1$}
+
+初始化事件桶 $B^{\mathrm{enter}}[0\ldots L-1]$，$B^{\mathrm{exit}}[0\ldots L]$\;
+\ForEach{面片$f_{k}\in F$}{
+    $B^{\mathrm{enter}}[L_{k\mathrm{start}}'].\mathrm{append}(k)$\;
+    $B^{\mathrm{exit}}[L_{k\mathrm{end}}+1].\mathrm{append}(k)$\;
+}
+初始化 $\alpha[0\ldots K-1]\leftarrow 0$，$\pi[0\ldots K-1]\leftarrow -1$\;
+初始化 $A\leftarrow\emptyset$\;
+\For{$l\leftarrow 0$ \KwTo $L-1$}{
+    \ForEach{$k\in B^{\mathrm{enter}}[l]$}{
+        \If{$\alpha_{k}=0$}{
+            $\alpha_{k}\leftarrow 1$\;
+            $\pi_{k}\leftarrow |A|$\;
+            $A.\mathrm{append}(k)$\;
+        }
+    }
+    \ForEach{$k\in B^{\mathrm{exit}}[l]$}{
+        \If{$\alpha_{k}=1$}{
+            $\alpha_{k}\leftarrow 0$\;
+            $\mathrm{pos}\leftarrow\pi_{k}$\;
+            $\mathrm{last}\leftarrow A.\mathrm{back}()$\;
+            $A[\mathrm{pos}]\leftarrow\mathrm{last}$\;
+            $\pi_{\mathrm{last}}\leftarrow\mathrm{pos}$\;
+            $A.\mathrm{pop\_back}()$\;
+        }
+    }
+    $A_{l}\leftarrow A$\;  // 第$l$层的活跃面片集合
+}
+\Return{$\{A_{0},A_{1},\ldots,A_{L-1}\}$}\;
+\end{algorithm}
+
+\section{构建切片轮廓}\label{sec:contour}
+
+本文中的切片算法，实际划分为如图\ref{fig:pipeline}所示的四个阶段，Phase 1完成事件桶的构建，Phase 2逐层更新活跃集、相交边提取和层内去重，其中更新活跃面片集合在\ref{sec:eds}节中已经提及，Phase 3通过边种子行走将相交边组织为闭合轮廓，Phase 4对轮廓执行去重。
+
+\begin{figure}[htbp]
+\centering
+% TODO: 替换为实际图片
+% \includegraphics[width=0.85\textwidth]{pipeline}
+\caption{轮廓构建各阶段数据流向}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{相交边提取和层内去重}
+
+三角面片与切片平面的空间位置关系，可依据面片三个顶点的$Z$坐标$z_{k\min}$、$z_{k\mathrm{mid}}$、$z_{k\max}$与切片平面高度$Z_{l}$的相对大小划分为7种情形，如图\ref{fig:intersect_cases}所示。且将所有情形的判定条件、相交边的数量和下游处理路径汇总于表\ref{tab:intersect_cases}中。情形(a)和(b)的面片中$Z_{l}$落在$[z_{k\min},z_{k\max}]$之外，面片整体位于切平面一侧，判定面片与该层无交点，在\ref{sec:eds}节的快速筛选阶段已被排除，实际不会进入轮廓构建环节。情形(g)，面片完全躺在切片平面上，此时三条边满足$|z_{i}-z_{j}|\le\varepsilon_{\tau}$，$\varepsilon_{\tau}$的取值跟\ref{sec:eds}节一致，为$\num{1e-5}\,\mathrm{mm}$，也在筛选阶段已经排除。情形(c)、(d)为普通相交的场景，此时切片平面横切面片内部且没有任何顶点恰好落在切平面上，恰好产生2条相交边。情形(e)和(f)中，面片的一个顶点位于切平面的一侧，另外两个顶点恰好落在切平面上，存在两个顶点满足$z_{v_{i}}=z_{v_{j}}=Z_{l}$，而第三个顶点满足$z_{v_{k}}\neq Z_{l}$，这类构型虽在筛选阶段予以保留，但其有效边判定不能简单依赖面片整体判别，而必须交由后续的单边相交准则做进一步裁决。
+
+结合上述相交的4种情况，本文建立基于单条边的统一判定准则。一条边$e=(u,v)$的两个端点$Z$坐标$z_{u}$和$z_{v}$，边$e$与切平面$z=Z_{l}$相交的充要条件为两端点分别位于切平面两侧，可通过式\eqref{eq:edge_intersect}判定。
+
+\begin{equation}
+\min(z_{u},z_{v})\le Z_{l}\le\max(z_{u},z_{v}) \label{eq:edge_intersect}
+\end{equation}
+
+同时须排除边与切平面平行的退化情形，也就是排除$|z_{u}-z_{v}|<\varepsilon_{\tau}$，判定该边与切平面平行，不产生有效交点，由此可以剔除掉特殊相交情况下的与水平面共面的边。对于满足式\eqref{eq:edge_intersect}的非平行边，交点$P_{\mathrm{int}}$可以采用线性插值的方式，计算方式为：
+
+\begin{equation}
+\begin{cases}
+t=\dfrac{Z_l-z_i}{z_j-z_i},\\[12pt]
+P_{\mathrm{int}}=P_i+t\cdot(P_j-P_i).
+\end{cases} \label{eq:linear_interp}
+\end{equation}
+
+式中$P_{i}=(x_{i},y_{i},z_{i})$和$P_{j}=(x_{j},y_{j},z_{j})$为相交边的两个端点。
 
 \begin{table}[htbp]
-\caption{三种切片算法的性能对比（单位：s）}
-\label{tab:slice_benchmark}
-\vspace{0.5em}\centering\wuhao
-\begin{tabular}{ccccc}
-\toprule
-模型 & 全量遍历 & 分组索引 & 本文算法 & 加速比 \\
-\midrule
-Bunny       & \num{12.3} & \num{3.1} & \num{1.8} & \num{6.8}$\times$ \\
-Dragon      & \num{187.5} & \num{42.6} & \num{25.3} & \num{7.4}$\times$ \\
-Armadillo   & \num{68.2} & \num{15.8} & \num{9.4} & \num{7.3}$\times$ \\
-Propeller   & \num{334.7} & \num{71.2} & \num{43.6} & \num{7.7}$\times$ \\
-Turbine     & \num{892.4} & \num{189.3} & \num{112.7} & \num{7.9}$\times$ \\
-EngineBlock & \num{1287.6} & \num{271.5} & \num{159.3} & \num{8.1}$\times$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-从表\ref{tab:slice_benchmark}可以看出，本文算法在所有测试模型上均取得了显著的性能提升，相对于全量遍历算法的加速比在6.8至8.1倍之间。加速比随着模型规模的增大而呈现上升趋势，这表明本文算法在大型模型上具有更好的可扩展性。
-
-\subsection{自适应切片策略有效性验证}
-
-为评估自适应切片策略对成型精度和加工效率的综合影响，选取包含典型悬垂结构的Propeller模型进行对比实验。分别采用固定层厚（\num{30}微米、\num{50}微米）和自适应层厚三种策略进行切片，统计切片层数和悬垂区域的角度偏差，结果如表\ref{tab:adaptive_result}所示。
-
-\begin{table}[htbp]
-\caption{不同切片策略的对比}
-\label{tab:adaptive_result}
+\caption{面片与切片平面的相交情形汇总}
+\label{tab:intersect_cases}
 \vspace{0.5em}\centering\wuhao
 \begin{tabular}{cccc}
 \toprule
-切片策略 & 切片层数 & 平均层厚（$\mu\mathrm{m}$） & 悬垂角度偏差（$^\circ$） \\
+类别 & 编号 & 相交边数 & 下游处理 \\
 \midrule
-固定层厚\num{30}$\mu\mathrm{m}$ & \num{2833} & \num{30.0} & \num{\pm 1.2} \\
-固定层厚\num{50}$\mu\mathrm{m}$ & \num{1700} & \num{50.0} & \num{\pm 3.8} \\
-自适应层厚               & \num{2267} & \num{37.5} & \num{\pm 1.4} \\
+不相交   & (a)(b) & 0 & 快速筛选已经过滤 \\
+普通相交 & (c)(d) & 2 & 边种子方式走 \\
+特殊相交 & (e)(f) & 3 & 边种子方式走 \\
+共面     & (g)   & 3 & 快速筛选已经过滤 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-实验结果表明，自适应切片策略在保证成型精度（角度偏差$\pm$1.4$^\circ$，接近固定\num{30}微米层厚的$\pm$1.2$^\circ$）的同时，相比固定\num{30}微米层厚减少了约20\%的切片层数，有效平衡了精度与效率之间的关系。
+\begin{figure}[htbp]
+\centering
+% TODO: 替换为实际图片
+% \includegraphics[width=0.85\textwidth]{intersect_cases}
+\caption{面片与切片平面的7种相交情形}
+\label{fig:intersect_cases}
+\end{figure}
+
+算法\ref{alg:edge_extract}给出了第$l$层相交边提取的完整流程，活跃面片集合$A_{l}$确定后，遍历$A_{l}$中每个面片的三条边，参照式\eqref{eq:edge_intersect}执行相交判定，跳过不相交的边。一条边通常被两个相邻面片共享，如果这两个面片在同一个$Z$高度同时活跃，该边将被重复收集两次，一个与边数组等长的整型标记数组$tag$实现常数时间去重，初始值为$-1$。处理第$l$层时，若全局边$e$首次被发现与切平面相交，则将标记值设为$l$并将$e$加入$E_{l}$；若$tag[e]=l$则表明该边已被同层面片处理过，直接跳过。标记数组在层间切换时天然处于可用状态，第$l$层使用整数值$l$作为标记，第$l+1$层使用$l+1$，新旧标记自然区分，不需要显式清零操作。
+
+\begin{algorithm}[htbp]
+\caption{相交边提取以及层内去重}
+\label{alg:edge_extract}
+\KwIn{第$l$层活跃面片集合$A_{l}$，第$l$层的层高$Z_{l}$，标记数组$tag$}
+\KwOut{相交边集合$E_{l}$}
+
+$E_{l}\leftarrow\emptyset$\;
+\ForEach{面片$f_{k}\in A_{l}$}{
+    $c\leftarrow 0$\;
+    \ForEach{$j\in\{I_{e0},I_{e1},I_{e2}\}$}{
+        取端点$Z$坐标 $z_{u},z_{v}$\;
+        \If{$|z_{u}-z_{v}|<\varepsilon_{\tau}$}{
+            \textbf{continue}\;
+        }
+        \If{$\min(z_{u},z_{v})\le Z_{l}\le\max(z_{u},z_{v})$}{
+            \If{$tag[j]\neq l$}{
+                $tag[j]\leftarrow l$\;
+                $E_{l}.\mathrm{push}(j)$\;
+            }
+            $c\leftarrow c+1$\;
+        }
+    }
+}
+\Return{$E_{l}$}\;
+\end{algorithm}
+
+\subsection{基于边行走的轮廓构建及后处理}
+
+提取出每一层的相交边集合之后，本文采用基于拓扑边的方式实现轮廓提取。在\ref{sec:topo}节中已为每一条全局边$j$建立了邻接关系$\kappa\to(j,p_{j},q_{j})$，其中$p_{j}$和$q_{j}$为这一条边的两个连接面片索引，$f_{k}\to(I_{v0},I_{v1},I_{v2})$。全局拓扑结构在切片过程中不再改变，所有层共享同一份拓扑数据。
+
+具体的轮廓算法如算法\ref{alg:contour_walk}所示。当进入当前层计算时，遍历当前层的有效边集合$E_{l}$，随机寻找状态未使用的边作为起始种子边，通过种子边的全局唯一索引$j_{\mathrm{seed}}$找到这条边两个邻接面片索引，如果邻接面片索引中有一个值为$-1$，则说明这条边处于模型的开放边界，在物理上是无法形成闭合轮廓，直接标记为已经使用并且跳过，继续寻找下一个种子面片。如果校验通过，则初始化有序相交边序列$P=\{j_{\mathrm{seed}}\}$，选取这条边的任意一个活跃面片作为起始面片$f_{k}$，进入边的游走阶段。基于边游走时，以当前面片$f_{k}$和当前边$j_{\mathrm{cur}}$为基准，提取出当前面片的三条边的索引$(I_{e0},I_{e1},I_{e2})$，排除当前边$j_{\mathrm{cur}}$，判断剩下的两条边是否能够在边活跃集合$E_{l}$中找到并且还活跃。在前置过程构建边活跃集合中，我们已经讨论过，一个面片只有2条边能够加入到活跃面片集合中，所以在这一阶段，恰好只有一条边满足条件，将其记录为下一条拓展边$j_{\mathrm{next}}$。然后，判断找到的拓展边$j_{\mathrm{next}}$是否等于$j_{\mathrm{seed}}$，如果$j_{\mathrm{next}}=j_{\mathrm{seed}}$二者相等，说明此时回到最开始的种子边上，此时轮廓已经闭合，终止当前游走。相反的，如果判断$j_{\mathrm{next}}\neq j_{\mathrm{seed}}$，则轮廓还没有闭合，将$j_{\mathrm{next}}$放入有序序列$P$中，通过边索引$j_{\mathrm{next}}$查询到对边邻接的面片记录$(p_{j_{\mathrm{next}}},q_{j_{\mathrm{next}}})$，排除当前正在遍历的面片$k$，把另外一个面片选定为下一阶段的面片$f_{k_{\mathrm{next}}}$。对选定下一阶段的面片校验，如果$k_{\mathrm{next}}$不存在于活跃面片集合$A_{l}$中，则说明路径延伸到了非活跃区域，游走终止；否则，将$j_{\mathrm{cur}}$更新为$j_{\mathrm{next}}$，$k$更新为$k_{\mathrm{next}}$，重复第5至11行的逻辑，直至边游走结束得到有序序列$P$。最后判断$|P|$是否大于等于3，按照式\eqref{eq:linear_interp}对有序序列$P$中每一条边执行线性插值，就可以求出切片平面与当前相交平面的交点坐标，最后就是将交点按照有序序列$P$中的顺序组合成有序序列$c$，放入到当前层的原始轮廓的集合$C_{l}$中。
+
+\begin{algorithm}[htbp]
+\caption{基于拓扑边环的轮廓提取}
+\label{alg:contour_walk}
+\KwIn{相交边集合$E_{l}$，活跃面片集合$A_{l}$，边-邻接面片映射$\{\kappa\to(j,p_{j},q_{j})\}$}
+\KwOut{原始轮廓集合$C_{l}$}
+
+$C_{l}\leftarrow\emptyset$\;
+\While{存在$j_{\mathrm{seed}}\in E_{l}$未使用}{
+    取种子面片$(p_{j_{\mathrm{seed}}},q_{j_{\mathrm{seed}}})$\;
+    \If{$p_{j_{\mathrm{seed}}}=-1$ \textbf{or} $q_{j_{\mathrm{seed}}}=-1$}{
+        \textbf{continue}\;
+    }
+    $j_{\mathrm{cur}}\leftarrow j_{\mathrm{seed}}$\;
+    $P\leftarrow\{j_{\mathrm{seed}}\}$\;
+    $\mathrm{closed}\leftarrow\mathrm{false}$\;
+    取$k$为$j_{\mathrm{seed}}$在$A_{l}$中的有效邻接面片索引\;
+    \For{$s\leftarrow 0$ \KwTo $2|E_{l}|$}{
+        在面片$f_{k}$的三边映射$(I_{e0},I_{e1},I_{e2})$中查找$j_{\mathrm{next}}\in E_{l}$，且$j_{\mathrm{next}}\neq j_{\mathrm{cur}}$，且未使用\;
+        \If{未找到满足条件的边}{
+            \textbf{break}\;
+        }
+        \If{$j_{\mathrm{next}}=j_{\mathrm{seed}}$}{
+            $\mathrm{closed}\leftarrow\mathrm{true}$\;
+            \textbf{break}\;
+        }
+        $P.\mathrm{push}(j_{\mathrm{next}})$\;
+        获取$\kappa_{\mathrm{next}}\to(j_{\mathrm{next}},p_{j_{\mathrm{next}}},q_{j_{\mathrm{next}}})$\;
+        $k_{\mathrm{next}}\leftarrow(p_{j_{\mathrm{next}}}\neq k)\;?\;p_{j_{\mathrm{next}}}:q_{j_{\mathrm{next}}}$\;
+        \If{$k_{\mathrm{next}}\notin A_{l}$}{
+            \textbf{break}\;
+        }
+        $j_{\mathrm{cur}}\leftarrow j_{\mathrm{next}}$\;
+        $f_{k}\leftarrow f_{k_{\mathrm{next}}}$\;
+    }
+    \If{$\mathrm{closed}$ \textbf{and} $|P|\ge 3$}{
+        $c\leftarrow\mathrm{Interp}(P)$\;
+        $c.\mathrm{push}(c_{0})$\;
+        $C_{l}.\mathrm{push}(c)$\;
+    }
+}
+\Return{原始轮廓集合$C_{l}$}\;
+\end{algorithm}
+
+在目前基于拓扑边的来构建轮廓的算法中，每一条边在当前层中只会使用一次，且使用完之后就会被标记为非活跃边，理论上不存在轮廓重复的问题，并经过试验验证了多个不同的模型，数据如表格所示，证明理论成立。所以本论文中在轮廓构建完成之后不做轮廓的去重处理。在轮廓构建完之后，本论文只对实际面积小于$\num{1}\,\mathrm{mm}^{2}$的轮廓执行过滤，因为这些极其小的轮廓在实际打印中往往打印不出来。如图所示，根据多边形的轮廓点序列$P=(x_{i},y_{i}),i=0,1,\ldots,n-1$的面积$S$计算方式如下：
+
+\begin{equation}
+S=\dfrac{1}{2}\left|\sum_{i=0}^{n-1}\left(x_i y_{i+1}-x_{i+1}y_i\right)\right| \label{eq:polygon_area}
+\end{equation}
+
+其中$x_{n}=x_{0}$，$y_{n}=y_{0}$。
+
+\section{实验验证与性能分析}\label{sec:exp}
+
+\subsection{实验环境与测试模型集}
+
+\subsection{相交检测方法性能对比}
+
+\subsection{轮廓构建方法的性能与闭合率对比}
+
+\subsection{相交检测与轮廓构建的贡献分解}
+
+\subsection{与已有切片方法的端到端对比}
 
 \section{本章小结}\label{sec:summary}
-
-本章围绕LPBF增材制造中的切片算法展开研究，针对STL模型拓扑关系缺失影响切片效率的核心问题，提出了事件驱动拓扑集成切片算法框架。本章的主要贡献包括以下三个方面：
-
-\begin{enumerate}
-\item 设计了基于哈希去重的STL模型拓扑重建方法。通过分析STL格式的顶点冗余和拓扑缺失问题的本质，建立了浮点坐标量化取整与异或哈希相结合的顶点去重机制，以及基于无向边标准化表示的边对邻接面片映射结构，构建了面片到点、面片到边、边到邻接面片的双向拓扑通路，为后续切片算法提供了完备的邻接查询能力。
-\item 提出了事件驱动切片算法架构。将切片过程建模为事件生成、优先级排序和事件处理的异步流程，充分利用拓扑邻接信息实现面向相邻面片的精确追踪，避免了传统全量遍历算法中大量无效的求交计算，将切片时间复杂度从$O(F\cdot L)$降低至接近$O(F)$水平。
-\item 设计了基于面片法向量倾角的自适应层厚策略。根据三角面片的几何复杂度指标动态调节各切片层的厚度，在保证悬垂区域成型精度的同时减少了整体切片层数，实验表明该策略相比固定最小层厚方案减少了约20\%的切片层数，而角度偏差可保持在$\pm$1.4$^\circ$以内。
-\end{enumerate}
-
-实验结果表明，本文算法在\num{5000000}面片规模的模型上拓扑重建时间不超过\num{1000}ms，切片加速比达到6.8至8.1倍，验证了所提出方法的有效性和可扩展性。
