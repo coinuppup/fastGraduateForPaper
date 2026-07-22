@@ -267,7 +267,7 @@ P_{\mathrm{int}}=P_i+t\cdot(P_j-P_i).
 \caption{面片与切片平面的相交情形汇总}
 \label{tab:intersect_cases}
 \vspace{0.5em}\centering\wuhao
-\begin{tabular}{cccc}
+\begin{tabularx}{\textwidth}{@{}>{\centering\arraybackslash}X c c >{\centering\arraybackslash}X@{}}
 \toprule
 类别 & 编号 & 相交边数 & 下游处理 \\
 \midrule
@@ -276,7 +276,7 @@ P_{\mathrm{int}}=P_i+t\cdot(P_j-P_i).
 特殊相交 & (e)(f) & 3 & 边种子方式走 \\
 共面     & (g)   & 3 & 快速筛选已经过滤 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 \begin{figure}[htbp]
